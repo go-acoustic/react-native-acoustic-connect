@@ -1,0 +1,299 @@
+/********************************************************************************************
+* Copyright (C) 2024 Acoustic, L.P. All rights reserved.
+*
+* NOTICE: This file contains material that is confidential and proprietary to
+* Acoustic, L.P. and/or other developers. No license is granted under any intellectual or
+* industrial property rights of Acoustic, L.P. except as may be provided in an agreement with
+* Acoustic, L.P. Any unauthorized copying or distribution of content from this file is
+* prohibited.
+********************************************************************************************/
+
+import java.util.regex.Matcher
+import java.util.regex.Pattern
+import groovy.json.JsonSlurper
+import groovy.json.JsonOutput
+
+def getConfigJSON() {
+    def configFile = "$project.rootDir/../ConnectConfig.json"
+    println("Reading file $configFile")
+    def jsonSlurper = new JsonSlurper()
+    return jsonSlurper.parse(new File(configFile))
+}
+
+def updateTealeafBasicConfig(mp, json) {
+    def propertiesFile = "$mp/src/main/assets/TealeafBasicConfig.properties"
+    FileInputStream _file = new FileInputStream(propertiesFile);
+    Properties properties = new Properties();
+    properties.load(_file);
+    _file.close();
+
+    FileOutputStream out = new FileOutputStream(propertiesFile);
+
+    json.each { key, value ->
+        if(key != "Connect"){ return }
+
+        println("Update/Add the following key/values:")
+        value.each { config_key, config_value ->
+            if(config_value.getClass() != java.lang.String
+            && config_value.getClass() != java.lang.Boolean
+            && config_value.getClass() != java.lang.Integer){
+                return
+            }
+            // Just update the following items
+            if (config_key == "AppKey" ||
+                config_key == "PostMessageUrl" ||
+                config_key == "KillSwitchUrl" ||
+                config_key == "KillSwitchEnabled" ||
+                config_key == "KillSwitchMaxNumberOfTries" ||
+                config_key == "KillSwitchTimeInterval" ||
+                config_key == "UseWhiteList" ||
+                config_key == "WhiteListParam" ||
+                config_key == "UseRandomSample" ||
+                config_key == "RandomSampleParam" ||
+                config_key == "PrintScreen" ||
+                config_key == "Connection" ||
+                config_key == "MaxStringsLength" ||
+                config_key == "CookieUrl" ||
+                config_key == "CookieParam" ||
+                config_key == "CookiePath" ||
+                config_key == "CookieDomain" ||
+                config_key == "CookieExpires" ||
+                config_key == "CookieSecure" ||
+                config_key == "CookieExpiresFormat" ||
+                config_key == "SessionTimeout" ||
+                config_key == "SessionTimeoutKillSwitch" ||
+                config_key == "disableTLTDID" ||
+                config_key == "ScreenshotFormat" ||
+                config_key == "PercentOfScreenshotsSize" ||
+                config_key == "PercentToCompressImage" ||
+                config_key == "ScreenShotPixelDensity" ||
+                config_key == "LogViewLayoutOnScreenTransition" ||
+                config_key == "GetImageDataOnScreenLayout" ||
+                config_key == "SetGestureDetector" ||
+                config_key == "CaptureNativeGesturesOnWebview" ||
+                config_key == "LogLocationEnabled" ||
+                config_key == "LogLocationTries" ||
+                config_key == "LogLocationTimeout" ) {
+                println(config_key + "=" + config_value)
+                properties.setProperty(config_key, config_value.toString())
+            }
+        }
+    }
+
+    properties.store(out, null);
+    out.close();
+    println("Updating:$propertiesFile")
+}
+
+def updateLayoutConfig(mp, json){
+    def layoutConfigPath = "$mp/src/main/assets/TealeafLayoutConfig.json"
+    def layoutConfigDefaultPath = "$mp/src/main/assets/TealeafLayoutConfigDefault.json"
+    def override = json.Connect.layoutConfig;
+    def overrideJson =  JsonOutput.toJson(override)
+
+    if(override != null){
+        def layoutConfigFile = new File(layoutConfigPath)
+        layoutConfigFile.text = overrideJson
+    } else {
+        def layoutConfigDefaultFile = new File(layoutConfigDefaultPath)
+        def layoutConfigFile = new File(layoutConfigPath)
+        layoutConfigFile.text = layoutConfigDefaultFile.text
+    }
+    println("Updating:$layoutConfigPath")
+}
+
+def updateTealeafAdvConfig(mp, json) {
+    def tealeafAdvConfigPath = "$mp/src/main/assets/TealeafAdvancedConfig.json"
+    println("Reading file $tealeafAdvConfigPath")
+    def jsonSlurper = new JsonSlurper()
+    def tealeafAdvConfigData = jsonSlurper.parse(new File(tealeafAdvConfigPath))
+
+    json.each { key, value ->
+        if(key != "Connect"){ return }
+
+        value.each { config_key, config_value ->
+            if(config_value.getClass() != java.lang.String
+            && config_value.getClass() != java.lang.Boolean
+            && config_value.getClass() != java.lang.Integer){
+                return
+            }
+            // Just update the following items
+            if (config_key == "AddMessageTypeHeader" ||
+                config_key == "ClickEventEnabled" ||
+                config_key == "ColorAccent" ||
+                config_key == "ColorPrimary" ||
+                config_key == "ColorPrimaryDark" ||
+                config_key == "DefaultAutoLayoutDelay" ||
+                config_key == "DefaultTextViewGravity" ||
+                config_key == "DefaultTextViewPaddingLeft" ||
+                config_key == "DefaultTextViewPaddingRight" ||
+                config_key == "EditTextEnabled" ||
+                config_key == "EnableActivityLifeCycleListener" ||
+                config_key == "EnableFragmentLifeCycleListener" ||
+                config_key == "EnableGestureSwipeLogScreen" ||
+                config_key == "EnableScreenshotCache" ||
+                config_key == "ExcludeTextViewStyleForOS" ||
+                config_key == "ExtendsGoogleWebViewClient" ||
+                config_key == "FilterMessageTypes" ||
+                config_key == "FlushUpdatedPlaceHolders" ||
+                config_key == "GenerateImageHash" ||
+                config_key == "GestureConfirmedScreenshotDelay" ||
+                config_key == "GoogleWebViewEnabled" ||
+                config_key == "InitialZIndex" ||
+                config_key == "IpPlaceholder" ||
+                config_key == "KillSwitchAsync" ||
+                config_key == "KillSwitchDelay" ||
+                config_key == "LogFullRequestResponsePayloads" ||
+                config_key == "MessageTypeHeader" ||
+                config_key == "MessageTypes" ||
+                config_key == "NavigationControllerEnabled" ||
+                config_key == "RemoveAllCookies" ||
+                config_key == "RemoveIp" ||
+                config_key == "ScreenViewUnloadDelay" ||
+                config_key == "StripDrawableFolderExt" ||
+                config_key == "SwitchWidth" ||
+                config_key == "TouchEventEnabled" ||
+                config_key == "UseXpathId" ||
+                config_key == "UseZindex" ||
+                config_key == "WebViewDelay" ||
+                config_key == "WebViewSetTagForId" ) {
+                println(config_key + "=" + config_value)
+                tealeafAdvConfigData[config_key] = config_value
+            }
+        }
+    }
+
+    def tealeafAdvConfigFile = new File(tealeafAdvConfigPath)
+    tealeafAdvConfigFile.text = JsonOutput.toJson(tealeafAdvConfigData)
+    println("Updating:$tealeafAdvConfigPath")
+}
+
+def updateEOCoreBasicConfig(mp, json) {
+    def propertiesFile = "$mp/src/main/assets/EOCoreBasicConfig.properties"
+    FileInputStream _file = new FileInputStream(propertiesFile);
+    Properties properties = new Properties();
+    properties.load(_file);
+    _file.close();
+
+    FileOutputStream out = new FileOutputStream(propertiesFile);
+
+    json.each { key, value ->
+        if(key != "Connect"){ return }
+
+        println("Update/Add the following key/values:")
+        value.each { config_key, config_value ->
+            if(config_value.getClass() != java.lang.String
+            && config_value.getClass() != java.lang.Boolean
+            && config_value.getClass() != java.lang.Integer){
+                return
+            }
+            // Just update the following items
+            if (config_key == "LoggingLevel" ||
+                config_key == "DisplayLogging" ||
+                config_key == "PersistLocalCache" ||
+                config_key == "CachingLevel" ||
+                config_key == "PostMessageLevelWiFi" ||
+                config_key == "PostMessageLevelCellular" ||
+                config_key == "ManualPostEnabled" ||
+                config_key == "DoPostOnIntervals" ||
+                config_key == "PostMessageTimeInterval") {
+                println(config_key + "=" + config_value)
+                properties.setProperty(config_key, config_value.toString())
+            }
+        }
+    }
+
+    properties.store(out, null);
+    out.close();
+    println("Updating:$propertiesFile")
+}
+
+def updateEOCoreAdvConfig(mp, json) {
+    def eocoreAdvConfigPath = "$mp/src/main/assets/EOCoreAdvancedConfig.json"
+    println("Reading file $eocoreAdvConfigPath")
+    def jsonSlurper = new JsonSlurper()
+    def eocoreAdvConfigData = jsonSlurper.parse(new File(eocoreAdvConfigPath))
+
+    json.each { key, value ->
+        if(key != "Connect"){ return }
+
+        value.each { config_key, config_value ->
+            if(config_value.getClass() != java.lang.String
+            && config_value.getClass() != java.lang.Boolean
+            && config_value.getClass() != java.lang.Integer){
+                return
+            }
+            // Just update the following items
+            if (config_key == "ApplicationBackgroundTimeInterval" ||
+                config_key == "ApplicationInBackgroundEnabled" ||
+                config_key == "BufferPercent" ||
+                config_key == "CachedFileMaxBytesSize" ||
+                config_key == "CompressPostMessage" ||
+                config_key == "DefaultOrientation" ||
+                config_key == "DisableCookieManager" ||
+                config_key == "MNCMCC" ||
+                config_key == "MaxNumberOfFilesToCache" ||
+                config_key == "MessageVersion" ||
+                config_key == "OrientationDelayNotificationToModules" ||
+                config_key == "OrientationSensorDelay" ||
+                config_key == "PostMessageMaxBytesSize" ||
+                config_key == "PostMessageSocketTimeout" ||
+                config_key == "PostMessageTimeout" ||
+                config_key == "TurnOffCorrectOrientationUpdates" ) {
+                println(config_key + "=" + config_value)
+                eocoreAdvConfigData[config_key] = config_value
+            }
+        }
+    }
+
+    def eocoreAdvConfigFile = new File(eocoreAdvConfigPath)
+    eocoreAdvConfigFile.text = JsonOutput.toJson(eocoreAdvConfigData)
+    println("Updating:$eocoreAdvConfigPath")
+}
+
+def updateGradle(mp, json){
+    def buildGradlePath = "$mp/build.gradle"
+    def buildGradleFile = new File(buildGradlePath)
+    def updatedBuildGradle = buildGradleFile.text
+
+    if (json != null && json.Connect) {
+        if(json.Connect.AndroidVersion != null) {
+            def connectSDK = "io.github.go-acoustic:connect:"
+            if(json.Connect.AndroidVersion.length() > 0) {
+                connectSDK += json.Connect.AndroidVersion
+            } else {
+                connectSDK += "+"
+            }
+            updatedBuildGradle = updatedBuildGradle.replaceAll(~/io.github.go-acoustic:connect:(\+|\d+.\d+.\d+)/, connectSDK)
+        }
+    }
+
+    buildGradleFile.text = updatedBuildGradle
+    println("Updating:$buildGradlePath")
+}
+
+try {
+    def module_path = project(':react-native-acoustic-connect').projectDir.getPath()
+
+    println("**Acoustic Integration***********************************************************************")
+    println("Executing $module_path/config.gradle")
+    println("Step 1:")
+    def configJSONData = getConfigJSON()
+    println("Step 2:")
+    updateTealeafBasicConfig(module_path, configJSONData)
+    println("Step 3:")
+    updateLayoutConfig(module_path, configJSONData)
+    println("Step 4:")
+    updateTealeafAdvConfig(module_path, configJSONData)
+    println("Step 5:")
+    updateEOCoreBasicConfig(module_path, configJSONData)
+    println("Step 6:")
+    updateEOCoreAdvConfig(module_path, configJSONData)
+    println("Step 7:")
+    updateGradle(module_path, configJSONData)
+    println("*********************************************************************************************")
+} catch (FileNotFoundException e) {
+    e.printStackTrace()
+} catch (IOException e) {
+    e.printStackTrace()
+}

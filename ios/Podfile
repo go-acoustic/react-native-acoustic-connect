@@ -1,0 +1,89 @@
+# React Native requirements
+puts "Remove node_modules"
+output = `rm -rf ../node_modules/`
+puts output
+output = `rm -rf node_modules/`
+puts output
+
+puts "Remove yarn.lock"
+output = `rm -rf ../yarn.lock`
+puts output
+output = `rm -rf yarn.lock`
+puts output
+
+puts "Install yarn tool"
+output = `brew install yarn`
+puts output
+
+puts "Install react native directory and sources"
+output = `cd .. && yarn install`
+puts output
+
+install! 'cocoapods', :disable_input_output_paths => true
+require_relative '../node_modules/react-native/scripts/react_native_pods'
+require_relative '../node_modules/@react-native-community/cli-platform-ios/native_modules'
+
+platform :ios, '13.0'
+
+target 'RNCxa' do
+  use_frameworks! :linkage => :static
+  config = use_native_modules!
+
+  use_react_native!(
+    :path => config[:reactNativePath],
+    # to enable hermes on iOS, change `false` to `true` and then install pods
+    :hermes_enabled => false
+  )
+
+  # Enables Flipper.
+  #
+  # Note that if you have use_frameworks! enabled, Flipper will not work and
+  # you should disable the next line.
+  # use_flipper!()
+
+  # post_install do |installer|
+  #   react_native_post_install(installer)
+  # end
+end
+
+target 'RNCxaStandaloneDebug' do
+  config = use_native_modules!
+
+  use_react_native!(
+    :path => config[:reactNativePath],
+    # to enable hermes on iOS, change `false` to `true` and then install pods
+    :hermes_enabled => false
+  )
+
+  # Enables Flipper.
+  #
+  # Note that if you have use_frameworks! enabled, Flipper will not work and
+  # you should disable the next line.
+  # use_flipper!()
+  # post_install do |installer|
+  #   react_native_post_install(installer)
+  # end
+end
+
+post_install do |installer|
+  `sed -i -e  $'s/__IPHONE_10_0/__IPHONE_12_0/' Pods/RCT-Folly/folly/portability/Time.h`
+  `sed -i -e  $'s/typedef uint8_t clockid_t;/\\/\\/typedef uint8_t clockid_t;/' Pods/RCT-Folly/folly/portability/Time.h`
+      
+  installer.pods_project.targets.each do |target|
+    puts "Target: #{target.name}"
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+      config.build_settings["ONLY_ACTIVE_ARCH"] = "YES"
+    end
+    if (target.name&.eql?('RNReanimated'))
+      target.build_configurations.each do |config|
+        config.build_settings["CLANG_CXX_LANGUAGE_STANDARD"] = "c++17"
+      end
+    end
+  end
+  installer.pods_project.build_configurations.each do |config|
+      config.build_settings["EXCLUDED_ARCHS[sdk=iphonesimulator*]"] = "arm64"
+  end
+end
+
+puts "Do not worry about warning: 'The Podfile contains framework or static library targets (Connect)'"

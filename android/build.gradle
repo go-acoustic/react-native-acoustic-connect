@@ -1,0 +1,49 @@
+apply plugin: 'com.android.library'
+apply plugin: "com.facebook.react"
+
+buildscript {
+    ext.kotlin_version = '1.7.21'
+
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:7.2.2'
+    }
+}
+
+android {
+    compileSdk 34
+
+    defaultConfig {
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        // get version name from package.json version
+        versionName "1.0"
+    }
+    lintOptions {
+        abortOnError false
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url "https://s01.oss.sonatype.org/content/groups/staging" }
+        
+        maven {
+            // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
+            url "$rootDir/../node_modules/react-native/android"
+        }
+    }
+}
+
+dependencies {
+    implementation 'com.facebook.react:react-native:+'
+
+    // Connect SDK libraries
+    api 'io.github.go-acoustic:connect:+'
+}

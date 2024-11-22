@@ -1,0 +1,44 @@
+{
+    "author": "Acoustic, L.P., Omar Hernandez, Chang Jie Yang",
+    "dependencies": {
+        "@prettier/plugin-xml": "^2.2.0",
+        "fast-xml-parser": "^4.0.8",
+        "prettier": "^2.7.1",
+        "prettier-plugin-java": "^1.6.2"
+    },
+    "description": "React native plugin for Acoustic Connect",
+    "devDependencies": {
+        "jetifier": "^1.6.3",
+        "react-native": "0.72.6"
+    },
+    "homepage": "https://github.com/go-acoustic/react-native-acoustic-connect",
+    "keywords": [
+        "react-native",
+        "ios",
+        "android",
+        "tealeaf",
+        "connect",
+        "cxa",
+        "wxca",
+        "er",
+        "enhanced-replay"
+    ],
+    "license": "See license in Licenses/License",
+    "main": "index.js",
+    "name": "react-native-acoustic-connect",
+    "peerDependencies": {
+        "react-native": "*"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/go-acoustic/react-native-acoustic-connect"
+    },
+    "scripts": {
+        "applyConfiguration": "node scripts/applyConfiguration.js $INIT_CWD",
+        "postinstall": "./scripts/postInstallScripts.sh",
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "verifyConnectSetup": "node scripts/verifyConnectSetup.js $INIT_CWD"
+    },
+    "summary": "react-native ios android tealeaf connect cxa wxca er enhanced-replay",
+    "version": "16.0.37"
+}
