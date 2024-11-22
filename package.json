@@ -40,5 +40,5 @@
         "verifyConnectSetup": "node scripts/verifyConnectSetup.js $INIT_CWD"
     },
     "summary": "react-native ios android tealeaf connect cxa wxca er enhanced-replay",
-    "version": "16.0.37"
+    "version": "16.0.39"
 }

@@ -563,13 +563,11 @@ def checkoutRepos() {
     }
 }
 
-def gitPush(path, commitMsg, tagMsg, branch, commitMsg2, tagOnly) {
+def gitPush(path, commitMsg, tagMsg, branch, commitMsg2) {
     echo "Git Push for: ${path}"
-    if (!tagOnly) {
-        runCMD('''cd \"''' + path + '''\" && git add . -A''')
-        runCMD('''cd \"''' + path + '''\" && git commit -a -m \"''' + commitMsg + '''\" -m \"''' + commitMsg2 + '''\"''')
-    }
-
+    runCMD('''cd \"''' + path + '''\" && git add . -A''')
+    runCMD('''cd \"''' + path + '''\" && git commit -a -m \"''' + commitMsg + '''\" -m \"''' + commitMsg2 + '''\"''')
+    
     // Tag repos
     echo "Tag repos"
     runCMD('''cd \"''' + path + '''\" && git tag -f \"''' + tagMsg + '''\" -m \"''' + commitMsg2 + '''\"''')
@@ -608,7 +606,7 @@ def publishBeta() {
     echo commitDesciption
 
     // push repos
-    gitPush("${buildDir}", commitMsg, currentVersion, srcBranch, commitDesciption, false)
+    gitPush("${buildDir}", commitMsg, currentVersion, srcBranch, commitDesciption)
 }
 
 def publishRelease() {
@@ -659,8 +657,8 @@ def publishRelease() {
     echo commitDesciption
 
     // push repos
-    gitPush("${releaseDir}", commitMsg, currentVersion, "main", commitDesciption, false)
-    gitPush("${buildDir}", commitMsg, currentVersion, srcBranch, commitDesciption, true)
+    gitPush("${releaseDir}", commitMsg, currentVersion, "main", commitDesciption)
+    // gitPush("${buildDir}", commitMsg, currentVersion, srcBranch, commitDesciption)
 }
 
 def populateSlackMessageGlobalVariables() {
