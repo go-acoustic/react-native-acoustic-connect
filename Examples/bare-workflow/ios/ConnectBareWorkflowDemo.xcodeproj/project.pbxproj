@@ -273,7 +273,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = co.acoustic.connect.demo.barewf;
+				PRODUCT_BUNDLE_IDENTIFIER = co.acoustic.mobile.connect.new.rn.demo.external.ConnectBareWorkflowDemo;
 				PRODUCT_NAME = ConnectBareWorkflowDemo;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -300,7 +300,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = co.acoustic.connect.demo.barewf;
+				PRODUCT_BUNDLE_IDENTIFIER = co.acoustic.mobile.connect.new.rn.demo.external.ConnectBareWorkflowDemo;
 				PRODUCT_NAME = ConnectBareWorkflowDemo;
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
