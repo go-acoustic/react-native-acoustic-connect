@@ -37,6 +37,13 @@ android/local.properties
 android/.idea/
 **/.gradle/
 
+# Debug keystore — committed so fresh checkouts (CI / test automation /
+# partners cloning the sample) can build & sign debug APKs out of the box.
+# The repo-root .gitignore excludes *.keystore project-wide, so re-include
+# it here. Debug keystores are not secret; production apps must generate
+# their own (see https://reactnative.dev/docs/signed-apk-android).
+!android/app/debug.keystore
+
 # Misc
 .idea/
 .vscode/

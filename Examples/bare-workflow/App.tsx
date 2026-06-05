@@ -15,9 +15,9 @@ import { Colors } from './src/theme/colors'
  * Root of the bare-workflow demo. Boots the SDK once on mount — reading
  * the saved App Key + Post URL from AsyncStorage and calling
  * `AcousticConnectRN.enable(appKey, postURL, 'off')`. Push features are out
- * of scope for CA-144313; sibling story CA-144314 adds them.
+ * of scope for this sample; a sibling sample adds them.
  *
- * This app is a setup-verification surface (per CA-144313). If SDK init
+ * This app is a setup-verification surface. If SDK init
  * fails the tabs must NOT render — a green-looking demo masks a broken
  * setup. Render an explicit error screen instead so the tester sees the
  * failure without having to dig through Metro / logcat.

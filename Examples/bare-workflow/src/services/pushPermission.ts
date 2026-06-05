@@ -3,11 +3,10 @@ import { PermissionsAndroid, Platform } from 'react-native'
 /**
  * Cross-platform notification authorization helper.
  *
- * **iOS:** `pushRequestPermission()` lands in the SDK bridge in the sibling
- * story [CA-137697](https://acoustic-jiraconf.atlassian.net/browse/CA-137697).
- * Until then this returns `notDetermined` on iOS so the demo's Push tab can
- * still be rendered without a hard dependency on the not-yet-merged bridge
- * method. Once CA-137697 is in, replace the iOS branches below with calls to
+ * **iOS:** `pushRequestPermission()` is provided by the SDK bridge. Until the
+ * sample is wired to it, this returns `notDetermined` on iOS so the demo's
+ * Push tab can still be rendered without a hard dependency on the bridge
+ * method. Replace the iOS branches below with calls to
  * `AcousticConnectRN.pushRequestPermission()`.
  *
  * **Android:** Uses the built-in `PermissionsAndroid` API for
@@ -36,7 +35,7 @@ export async function getAuthorizationStatus(): Promise<AuthorizationStatus> {
     )
     return granted ? 'authorized' : 'notDetermined'
   }
-  // iOS: pending CA-137697 — see file header.
+  // iOS: not yet wired to the SDK bridge — see file header.
   return 'notDetermined'
 }
 
@@ -64,12 +63,11 @@ export async function requestAuthorization(): Promise<AuthorizationResult> {
       }
     }
   }
-  // iOS placeholder — replace with AcousticConnectRN.pushRequestPermission()
-  // once CA-137697 lands.
+  // iOS placeholder — replace with AcousticConnectRN.pushRequestPermission().
   return {
     status: 'notDetermined',
     error:
-      'iOS push permission is provided by pushRequestPermission() in CA-137697 (not yet merged).',
+      'iOS push permission is provided by pushRequestPermission() (not yet wired into this sample).',
   }
 }
 

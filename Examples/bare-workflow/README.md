@@ -63,6 +63,28 @@ npm run ios
 npm run android
 ```
 
+## Build
+
+Produce a signed **debug APK** — used by CI / test automation and for
+sideloading onto partner devices:
+
+```bash
+cd Examples/bare-workflow/android
+./gradlew :app:assembleDebug      # JDK 17; Gradle 9 via the bundled wrapper
+# → android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+The debug keystore (`android/app/debug.keystore`, all passwords `android`)
+is committed, so a fresh checkout builds and signs without extra setup. The
+`release` build type signs with the same keystore for demo convenience —
+**production apps must generate their own**
+([signed APK guide](https://reactnative.dev/docs/signed-apk-android)).
+
+> **Build standalone.** Build from a clean clone or copy of this sample, not
+> nested inside another package's `node_modules` tree — otherwise npm hoists
+> the sample's React Native version and the Android build resolves the wrong
+> one.
+
 ## Configuring SDK Credentials
 
 The demo reads credentials from `ConnectConfig.json` next to this README.

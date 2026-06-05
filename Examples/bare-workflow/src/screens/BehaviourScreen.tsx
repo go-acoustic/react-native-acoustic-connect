@@ -5,7 +5,7 @@ import { LogoHeader } from '../components/LogoHeader'
 import { Colors } from '../theme/colors'
 
 /**
- * Behaviour tab — placeholder kept intentionally empty per CA-144313 so the
+ * Behaviour tab — placeholder kept intentionally empty so the
  * scaffold is in place for the next pass. Slated to host the analytics-side
  * SDK references (`logCustomEvent`, `logSignal`, `logClickEvent`, screen
  * view tracking, exception reporting). Adding new cards here is the
@@ -25,7 +25,7 @@ export function BehaviourScreen() {
             Analytics surfaces will land here.
           </Text>
           <Text style={styles.body}>
-            This tab is intentionally empty in CA-144313. Future work will add
+            This tab is intentionally empty for now. Future work will add
             demo cards for custom events, signals, click and text-change
             tracking, screen-view logging, and unhandled-exception reporting —
             the analytics half of the SDK that lives alongside the push half.

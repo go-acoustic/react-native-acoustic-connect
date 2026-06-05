@@ -1,8 +1,8 @@
 buildscript {
     ext {
         buildToolsVersion = "36.0.0"
-        // SDK floor — react-native-acoustic-connect-beta requires minSdk 26
-        // (raised in CA-137696). Apps consuming the SDK must match.
+        // SDK floor — react-native-acoustic-connect-beta requires minSdk 26.
+        // Apps consuming the SDK must match.
         minSdkVersion = 26
         compileSdkVersion = 36
         targetSdkVersion = 36

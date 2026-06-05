@@ -129,7 +129,7 @@ class ConnectSDKManagerImpl {
     const trimmedValue = identifierValue.trim()
     if (!trimmedName || !trimmedValue) return
 
-    // TODO(CA-137697 sibling): replace with the dedicated identity bridge
+    // TODO: replace with the dedicated identity bridge
     // call once `AcousticConnectRN.identity.log(...)` is added. The mapping
     // matches the iOS sample's `ConnectSDK.shared.identity.log(...)`.
     const success = AcousticConnectRN.logCustomEvent(
