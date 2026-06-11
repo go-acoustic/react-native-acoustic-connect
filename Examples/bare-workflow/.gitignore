@@ -27,6 +27,10 @@ ios/.xcode.env.local
 **/*.xcuserstate
 **/*.xcuserdatad/
 
+# Local code-signing team for CLI push testing — each dev sets their own.
+# Template: ios/Signing.local.example.xcconfig (committed).
+ios/Signing.local.xcconfig
+
 # Android — gradle caches, build outputs, IDE state
 android/.gradle/
 android/build/
@@ -52,3 +56,11 @@ android/.idea/
 
 # SDK credentials — never commit (gitignored project-wide too)
 ConnectConfig.json
+
+# FCM — developer's real Firebase config (copied from the committed
+# google-services.json.template). Never commit a real one.
+android/app/google-services.json
+
+# One-off Xcode derived-data from CLI validation builds (Release variant;
+# Debug 'ios/build/' is already ignored above).
+ios/build-release/

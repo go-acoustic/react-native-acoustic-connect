@@ -4,6 +4,19 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
+// FCM push: apply the google-services plugin only when the developer has
+// dropped in their own google-services.json (copied from the committed
+// google-services.json.template). Conditional so the demo still builds for
+// the no-push / no-Firebase case — the SDK's connect-push-fcm artifact is
+// itself gated by Connect.PushEnabled in ../../ConnectConfig.json.
+if (file('google-services.json').exists()) {
+    apply plugin: "com.google.gms.google-services"
+    println "AcousticConnectRN demo: google-services.json found — FCM plugin applied."
+} else {
+    println "AcousticConnectRN demo: no google-services.json — skipping FCM plugin. " +
+        "Copy google-services.json.template to google-services.json with your Firebase project to enable push."
+}
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -90,7 +103,7 @@ android {
 
     namespace "co.acoustic.connect.demo.barewf"
     defaultConfig {
-        applicationId "co.acoustic.connect.demo.barewf"
+        applicationId "co.acoustic.mobile.connect.new.rn.demo.external.ConnectBareWorkflowDemo"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

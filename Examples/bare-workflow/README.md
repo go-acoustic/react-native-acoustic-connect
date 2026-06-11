@@ -15,16 +15,21 @@ so the two demos look the same side-by-side.
 
 ## Scope
 
-| Tab           | Status            | What it does                                                                              |
-| ------------- | ----------------- | ----------------------------------------------------------------------------------------- |
-| **Push**      | Implemented       | Shows OS notification authorization status + Request Authorization button.                |
-| **Identity** | Implemented       | Logs `loggedIn` / `accountRegistered` signals with identifier name + value. Recents list. |
-| **Behaviour** | Empty placeholder | Reserved for the analytics half of the SDK — custom events, signals, clicks, screen views. |
+| Tab                | Status            | What it does                                                                              |
+| ------------------ | ----------------- | ----------------------------------------------------------------------------------------- |
+| **Push**           | Implemented       | Notification authorization status + Request Authorization button (via `pushGetPermissionState` / `pushRequestPermission`). |
+| **Identity**       | Implemented       | Logs `loggedIn` / `accountRegistered` signals with identifier name + value. Recents list. |
+| **Behaviour**      | Empty placeholder | Reserved for the analytics half of the SDK — custom events, signals, clicks, screen views. |
+
+This sample exercises the full v19.x push surface on iOS (APNs) and Android
+(FCM) — manual-mode lifecycle forwarding, NSE + NCE rich-media targets,
+cross-platform permission methods, and the config-driven push mode. See
+[Mobile Push Setup](#mobile-push-setup).
 
 Out of scope for this sample:
 
-- APNs / FCM token registration, rich push, push tap handling.
-- Expo config plugin verification.
+- Expo config plugin verification (covered by the Expo sibling story).
+- iOS-only 5-state `getDetailedPermissionState()` (not in v19.x).
 
 ## Prerequisites
 
@@ -32,6 +37,12 @@ Out of scope for this sample:
 - **iOS**: Xcode 26, iOS 15.1+ simulator, CocoaPods
 - **Android**: Android Studio with API 35 SDK, JDK 17+, Android NDK,
   Gradle 9.x (bundled), minSdk 26
+- **For push delivery (physical devices)**:
+  - iOS: an Apple Developer team, a Push Notifications-enabled App ID, and
+    an APNs key/cert configured on your Acoustic channel. APNs tokens are not
+    issued on the simulator — use a physical device for end-to-end push.
+  - Android: a Firebase project (`google-services.json`) and its FCM
+    credentials configured on your Acoustic channel.
 
 ## Setup
 
@@ -104,6 +115,131 @@ To change credentials: edit `ConnectConfig.json`, re-run
 `bundle exec pod install --project-directory=ios` for iOS, then
 relaunch.
 
+## Mobile Push Setup
+
+Push is configured entirely in `ConnectConfig.json` (no runtime arguments —
+`enable()` is parameterless as of v19.x). The relevant fields:
+
+```jsonc
+{
+  "Connect": {
+    "PushEnabled": true,                 // master gate (both platforms)
+    "iOSPushMode": "automatic",          // "automatic" | "manual"
+    "iOSAppGroupIdentifier": "group.<your.bundle.id>",
+    "AndroidNotificationIconResName": "ic_stat_push"
+  }
+}
+```
+
+- **Push mode is fixed at install time.** `iOSPushMode` is baked into the
+  bundled config by `pod install` (iOS) / Gradle config (Android). Switching
+  modes means editing `ConnectConfig.json` and re-running `pod install` /
+  re-syncing Gradle (there is no runtime mode toggle).
+- **automatic** (this demo's default) — the SDK manages the full APNs/FCM
+  lifecycle itself: it swizzles the app delegate for token capture and installs
+  a `UNUserNotificationCenter` delegate proxy (iOS) / registers its own FCM
+  service (Android). The host AppDelegate wiring still present is harmless —
+  the SDK's proxy wraps it and the manual-only forwarders no-op
+  (`EAC-RN-007`).
+- **manual** — the host app owns the delegate and forwards each lifecycle
+  event to the SDK itself (see `ios/.../AppDelegate.swift`).
+
+### iOS — APNs + NSE/NCE targets
+
+1. **App Group + Push capability.** The host app and both extensions share
+   the App Group in `iOSAppGroupIdentifier`. The entitlements are committed
+   (`ios/ConnectBareWorkflowDemo/*.entitlements`, `ios/ConnectNSE`,
+   `ios/ConnectNCE`); in Xcode, select your Team and confirm the App Group +
+   Push Notifications capabilities on all three targets for device builds.
+1. **Code-signing team (required for APNs registration).** The
+   `aps-environment` entitlement is only embedded when the app builds with an
+   Apple Developer Team. Running from Xcode injects your team automatically, so
+   push works from the GUI. **Command-line builds (`npm run ios`, `xcodebuild`,
+   CI) do not auto-pick a team** — without it the OS returns no APNs token, and
+   on the Simulator it fails *silently* (a session reaches the collector but no
+   `mobileToken`/PushRegistration). To enable push from the CLI, set your team
+   once:
+
+   ```bash
+   cp ios/Signing.local.example.xcconfig ios/Signing.local.xcconfig
+   # edit ios/Signing.local.xcconfig → DEVELOPMENT_TEAM = <your 10-char Team ID>
+   ```
+
+   `ios/Signing.local.xcconfig` is gitignored; `ios/Signing.xcconfig` (the
+   project-level base config) optionally includes it, so the committed sample
+   stays team-free and each developer supplies their own. A free personal team
+   is enough for Simulator registration.
+2. **NSE + NCE Xcode targets** are already wired into the project. They were
+   added by the committed helper script (re-run only if you regenerate the
+   Xcode project from a fresh RN template):
+
+   ```bash
+   ruby ios/scripts/add_push_extensions.rb
+   bundle exec pod install --project-directory=ios
+   ```
+
+   - `ConnectNSE/NotificationService.swift` subclasses
+     `ConnectNotificationService` — downloads the rich-media attachment and
+     logs PushReceived via the App Group pending store.
+   - `ConnectNCE/NotificationViewController.swift` subclasses
+     `ConnectNotificationContentExtension` — renders the rich expansion UI.
+
+   This is the **manual** equivalent of what the Expo Config Plugin produces
+   automatically for Expo projects.
+3. **AppDelegate** registers for remote notifications and forwards
+   `didRegisterForRemoteNotificationsWithDeviceToken` →
+   `ConnectSDK.shared.push.didRegisterWithToken`, plus the
+   `UNUserNotificationCenter` delegate callbacks → `didReceiveNotification` /
+   `didReceive(_:)`. (JS apps that obtain the token in JavaScript would call
+   `AcousticConnectRN.pushDidRegisterWithToken(buffer)` instead.)
+
+### Android — FCM
+
+1. Create a Firebase project, add an Android app whose package name matches
+   the `applicationId` in `android/app/build.gradle`, and download its
+   `google-services.json`.
+2. Copy it next to `android/app/google-services.json.template`:
+
+   ```bash
+   cp android/app/google-services.json.template android/app/google-services.json
+   # then overwrite with the file from the Firebase console
+   ```
+
+   The file is gitignored. `android/app/build.gradle` applies the
+   `google-services` plugin only when it is present, so the demo still builds
+   without it (push just won't deliver).
+3. `PushEnabled: true` makes `android/build.gradle` pull the
+   `connect-push-fcm` SDK artifact; the SDK registers its FCM service and
+   uses `ic_stat_push` (`AndroidNotificationIconResName`) as the status-bar
+   icon. Grant the `POST_NOTIFICATIONS` runtime permission via the **Push**
+   tab's *Request permission* button on Android 13+.
+
+## Sending a Test Push
+
+End-to-end delivery requires a **physical device** (no APNs token on the iOS
+simulator; FCM needs a real `google-services.json`).
+
+1. Build & run on the device; confirm registration:
+   - iOS: AppDelegate forwards the APNs token; a PushRegistration (msg 22)
+     signal appears at the Collector.
+   - Android: the FCM token is registered automatically; PushRegistration
+     appears at the Collector.
+2. Send from your Acoustic channel (or the APNs/FCM console for a raw test):
+   - **Standard push** — title + body. Tapping it fires PushAction (msg 23);
+     the SDK runs the built-in action.
+   - **Rich (media) push, iOS** — include an `expandedImage` (or the
+     `ACOUSTIC_RICH_NOTIFICATION` category). The NSE downloads and attaches
+     the media; long-press / expand to see the NCE render it.
+3. Foreground vs background: the SDK logs PushReceived (msg 25) on delivery;
+   verify all three signals (22 / 25 / 23) at the Collector.
+
+> **Delivery is handled natively.** The v19.x surface has no native→JS push
+> listener — inbound notifications are received by the native delegate
+> (AppDelegate / FCM service) and forwarded to the SDK there (manual mode),
+> or handled entirely by the SDK (automatic mode). There is no JS screen that
+> renders received payloads; verify delivery via the on-device banner and the
+> signals at the Collector.
+
 ## Verifying Events Reach the Collector
 
 ### Android — foreground timer-driven
@@ -173,10 +309,13 @@ App.tsx
   1:1.
 - **Components** — `DemoCard`, `DemoTextField`, `StatusRow`, button
   styles are direct RN ports of the iOS counterparts.
-- **Push permission helper** — `src/services/pushPermission.ts` uses
-  `PermissionsAndroid` on Android 13+. iOS returns `notDetermined`
-  until the dedicated bridge call (`pushRequestPermission()`) ships in
-  a future SDK release.
+- **Push permission helper** — `src/services/pushPermission.ts` wraps the
+  cross-platform bridge methods (`pushRequestPermission`,
+  `pushGetPermissionState`) as a tri-state (`true` / `false` / `null`). The
+  bridge dispatches the platform-appropriate native call internally — no
+  `Platform.OS` branching. Push mode, app group, and rich-media targets are
+  configured in `ConnectConfig.json` / the native projects (see Mobile Push
+  Setup), not in JS.
 
 ## Adding a New Demo Card
 

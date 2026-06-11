@@ -1,87 +1,42 @@
-import { PermissionsAndroid, Platform } from 'react-native'
+import AcousticConnectRN from 'react-native-acoustic-connect-beta'
 
 /**
- * Cross-platform notification authorization helper.
+ * Cross-platform notification permission helper.
  *
- * **iOS:** `pushRequestPermission()` is provided by the SDK bridge. Until the
- * sample is wired to it, this returns `notDetermined` on iOS so the demo's
- * Push tab can still be rendered without a hard dependency on the bridge
- * method. Replace the iOS branches below with calls to
- * `AcousticConnectRN.pushRequestPermission()`.
+ * Wired to the v19.x Connect bridge permission surface (iOS + Android):
  *
- * **Android:** Uses the built-in `PermissionsAndroid` API for
- * `POST_NOTIFICATIONS` (required on Android 13+; auto-granted on older).
+ *   - `pushRequestPermission()`  → presents the system prompt, resolves
+ *     `{ granted, error? }`. Never rejects.
+ *   - `pushGetPermissionState()` → reads the current state without prompting,
+ *     resolves the tri-state `true | false | null`.
+ *
+ * The bridge dispatches the platform-appropriate native call internally, so
+ * there is no `Platform.OS` branching here — both iOS and Android go through
+ * the same JS methods.
  */
 
-export type AuthorizationStatus =
-  | 'notDetermined'
-  | 'authorized'
-  | 'denied'
-  | 'provisional'
-  | 'ephemeral'
+/** Tri-state notification permission: `true` granted, `false` denied, `null` not determined. */
+export type PermissionTriState = boolean | null
 
-export type AuthorizationResult = {
-  status: AuthorizationStatus
-  error?: string
+/** Result of {@link requestPermission} — mirrors the bridge's `PushPermissionResult`. */
+export type RequestResult = {
+  granted: boolean
+  error?: string | null
 }
 
-export async function getAuthorizationStatus(): Promise<AuthorizationStatus> {
-  if (Platform.OS === 'android') {
-    if (Platform.Version < 33) {
-      return 'authorized'
-    }
-    const granted = await PermissionsAndroid.check(
-      PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
-    )
-    return granted ? 'authorized' : 'notDetermined'
-  }
-  // iOS: not yet wired to the SDK bridge — see file header.
-  return 'notDetermined'
+/** Presents the system permission prompt when undetermined. Never rejects. */
+export async function requestPermission(): Promise<RequestResult> {
+  return AcousticConnectRN.pushRequestPermission()
 }
 
-export async function requestAuthorization(): Promise<AuthorizationResult> {
-  if (Platform.OS === 'android') {
-    if (Platform.Version < 33) {
-      return { status: 'authorized' }
-    }
-    try {
-      const result = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
-      )
-      return {
-        status:
-          result === PermissionsAndroid.RESULTS.GRANTED
-            ? 'authorized'
-            : result === PermissionsAndroid.RESULTS.DENIED
-              ? 'denied'
-              : 'notDetermined',
-      }
-    } catch (error) {
-      return {
-        status: 'denied',
-        error: error instanceof Error ? error.message : String(error),
-      }
-    }
-  }
-  // iOS placeholder — replace with AcousticConnectRN.pushRequestPermission().
-  return {
-    status: 'notDetermined',
-    error:
-      'iOS push permission is provided by pushRequestPermission() (not yet wired into this sample).',
-  }
+/** Reads the current permission tri-state without prompting. Never rejects. */
+export async function getPermissionState(): Promise<PermissionTriState> {
+  return AcousticConnectRN.pushGetPermissionState()
 }
 
-export function statusText(status: AuthorizationStatus): string {
-  switch (status) {
-    case 'notDetermined':
-      return 'Not Requested'
-    case 'denied':
-      return 'Denied'
-    case 'authorized':
-      return 'Authorized'
-    case 'provisional':
-      return 'Provisional'
-    case 'ephemeral':
-      return 'Ephemeral'
-  }
+/** Status label matching the iOS sample's wording. */
+export function authorizationStatusText(state: PermissionTriState): string {
+  if (state === true) return 'Authorized'
+  if (state === false) return 'Denied'
+  return 'Not Requested'
 }

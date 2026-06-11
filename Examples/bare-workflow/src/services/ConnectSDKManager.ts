@@ -1,10 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import AcousticConnectRN from 'react-native-acoustic-connect-beta'
 import {
-  getAuthorizationStatus,
-  requestAuthorization,
-  type AuthorizationResult,
-  type AuthorizationStatus,
+  getPermissionState,
+  requestPermission,
+  type PermissionTriState,
+  type RequestResult,
 } from './pushPermission'
 
 /**
@@ -25,11 +25,10 @@ import {
  * confirms the SDK is up and is safe to repeat (the native layer
  * short-circuits via `Connect.isEnabled()`).
  *
- * **Note on identity logging.** The iOS sample calls
- * `ConnectSDK.shared.identity.log(...)`. That call is not yet exposed on the
- * RN bridge — the equivalent will be added alongside the bare-workflow
- * sibling work. Until then, identity events route through the existing
- * `logCustomEvent` surface so the demo can be exercised end-to-end.
+ * **Identity logging.** Uses the dedicated `AcousticConnectRN.logIdentity(...)`
+ * bridge method, which wraps `ConnectSDK.shared.identity.log` on iOS and
+ * `Connect.logIdentificationEvent` on Android. It is async and resolves with
+ * the SDK's real success value.
  */
 
 const IDENTITY_HISTORY_KEY = 'connectDemo.identityHistory'
@@ -38,7 +37,7 @@ const HISTORY_LIMIT = 5
 export type IdentityPair = { name: string; value: string }
 
 export type ManagerState = {
-  authorizationStatus: AuthorizationStatus
+  permissionState: PermissionTriState
   identityHistory: IdentityPair[]
   identityLogResult: string | null
   sdkEnabled: boolean
@@ -48,7 +47,7 @@ type Listener = (state: ManagerState) => void
 
 class ConnectSDKManagerImpl {
   private state: ManagerState = {
-    authorizationStatus: 'notDetermined',
+    permissionState: null,
     identityHistory: [],
     identityLogResult: null,
     sdkEnabled: false,
@@ -88,58 +87,64 @@ class ConnectSDKManagerImpl {
   async start(): Promise<void> {
     const history = await this.loadIdentityHistory()
     const enabled = AcousticConnectRN.enable()
-    const status = await getAuthorizationStatus()
+    const state = await getPermissionState()
     this.setState({
       sdkEnabled: enabled,
       identityHistory: history,
-      authorizationStatus: status,
+      permissionState: state,
     })
   }
 
-  async refreshAuthorizationStatus(): Promise<void> {
-    const status = await getAuthorizationStatus()
-    this.setState({ authorizationStatus: status })
+  /** Re-reads the permission tri-state without prompting (e.g. on foreground). */
+  async refreshPermissionState(): Promise<void> {
+    const state = await getPermissionState()
+    this.setState({ permissionState: state })
   }
 
-  async requestPushAuthorization(): Promise<AuthorizationResult> {
-    const result = await requestAuthorization()
-    this.setState({ authorizationStatus: result.status })
+  /**
+   * Requests notification permission via the SDK (`pushRequestPermission`).
+   * Presents the system prompt when undetermined and updates the displayed
+   * status from the resolved result. Never rejects.
+   */
+  async requestPermission(): Promise<RequestResult> {
+    const result = await requestPermission()
+    this.setState({ permissionState: result.granted })
     return result
   }
 
   logUserLoggedIn(identifierName: string, identifierValue: string): void {
+    // Fire-and-forget, but handle the rejection: an unhandled Promise rejection
+    // surfaces as a Hermes warning (and can crash in strict mode).
     this.logIdentity(identifierName, identifierValue, 'loggedIn', {
       loginMethod: 'email',
-    })
+    }).catch((err) => console.warn('[Connect] logUserLoggedIn failed', err))
   }
 
   logUserRegistered(identifierName: string, identifierValue: string): void {
     this.logIdentity(identifierName, identifierValue, 'accountRegistered', {
       registrationMethod: 'email',
-    })
+    }).catch((err) => console.warn('[Connect] logUserRegistered failed', err))
   }
 
-  private logIdentity(
+  private async logIdentity(
     identifierName: string,
     identifierValue: string,
     signalType: string,
     additionalParameters: Record<string, string>
-  ): void {
+  ): Promise<void> {
     const trimmedName = identifierName.trim()
     const trimmedValue = identifierValue.trim()
     if (!trimmedName || !trimmedValue) return
 
-    // TODO: replace with the dedicated identity bridge
-    // call once `AcousticConnectRN.identity.log(...)` is added. The mapping
-    // matches the iOS sample's `ConnectSDK.shared.identity.log(...)`.
-    const success = AcousticConnectRN.logCustomEvent(
+    // Dedicated identity bridge: wraps the native identity loggers
+    // (`ConnectSDK.shared.identity.log` on iOS, `Connect.logIdentificationEvent`
+    // on Android). Async — resolves with the SDK's actual success value, and
+    // returns `false` for a blank identifier (already guarded above).
+    const success = await AcousticConnectRN.logIdentity(
+      trimmedName,
+      trimmedValue,
       signalType,
-      {
-        identifierName: trimmedName,
-        identifierValue: trimmedValue,
-        ...additionalParameters,
-      },
-      1
+      additionalParameters
     )
 
     const pair: IdentityPair = { name: trimmedName, value: trimmedValue }
@@ -155,9 +160,11 @@ class ConnectSDKManagerImpl {
       identityHistory: nextHistory,
     })
 
-    void AsyncStorage.setItem(
+    AsyncStorage.setItem(
       IDENTITY_HISTORY_KEY,
       JSON.stringify(nextHistory)
+    ).catch((err) =>
+      console.warn('[Connect] failed to persist identity history', err)
     )
   }
 

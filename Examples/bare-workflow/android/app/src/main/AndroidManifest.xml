@@ -5,6 +5,10 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Android 13+ runtime notification permission. Requested via the
+         Connect bridge's pushRequestPermission() (POST_NOTIFICATIONS). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
     android:name=".MainApplication"
     android:label="@string/app_name"

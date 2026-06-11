@@ -38,7 +38,10 @@ plugins { id("com.facebook.react.settings") }
 extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
     ex.autolinkLibrariesFromCommand()
 }
-rootProject.name = 'co.acoustic.connect.demo.barewf'
+// Gradle project label only — must NOT contain dots (Gradle treats '.' as a
+// project-path separator, which breaks composite builds). It does not need to
+// match the applicationId; the published app id is set in app/build.gradle.
+rootProject.name = 'ConnectBareWorkflowDemo'
 include ':app'
 
 def gradlePluginPkgPath = ["node", "-p", "require.resolve('@react-native/gradle-plugin/package.json')"]

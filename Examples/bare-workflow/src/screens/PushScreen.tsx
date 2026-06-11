@@ -1,10 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect } from 'react'
 import {
   AppState,
   type AppStateStatus,
   ScrollView,
   StyleSheet,
-  Text,
 } from 'react-native'
 import { DemoCard } from '../components/DemoCard'
 import { LogoHeader } from '../components/LogoHeader'
@@ -12,48 +11,45 @@ import { PrimaryButton } from '../components/buttons'
 import { StatusRow } from '../components/StatusRow'
 import { ConnectSDKManager } from '../services/ConnectSDKManager'
 import {
-  statusText,
-  type AuthorizationStatus,
+  authorizationStatusText,
+  type PermissionTriState,
 } from '../services/pushPermission'
 import { useManagerState } from '../services/useManagerState'
 import { Colors } from '../theme/colors'
 
 /**
- * Push tab — mirrors the iOS sample's `PushDemoView`
- * (`Scenes/PushDemo/PushDemoView.swift`). Shows the OS authorization status
- * and a Request Authorization button. Refreshes when the app returns to the
- * foreground, the same trick the iOS view uses with `scenePhase == .active`.
+ * Push tab — mirrors the iOS sample's `PushDemoView` notification-authorization
+ * section. Shows the OS notification permission status and a Request
+ * Authorization button, wired to the v19.x bridge (`pushGetPermissionState` /
+ * `pushRequestPermission`, cross-platform). Refreshes on foreground, the same
+ * trick the iOS view uses with `scenePhase == .active`.
  *
- * Permission-request feedback is rendered inline rather than via
- * `Alert.alert`. RN's `Alert.alert` on iOS presents a `UIAlertController`
- * that lives outside the React tree; the SDK's auto-instrumentation reacts
- * to the alert's animation by capturing dozens of layout/screen-view
- * events per show. Inline rendering keeps the captured signal one-tap-one-
- * event.
+ * Push mode, app-group, and rich-media targets are configured in
+ * `ConnectConfig.json` / the native projects — see the README's
+ * "Mobile Push Setup". The SDK auto-enables at boot from the bundled config,
+ * so the tab stays focused on the one runtime interaction: permission.
  */
 export function PushScreen() {
   const state = useManagerState()
-  const [message, setMessage] = useState<string | null>(null)
 
   useEffect(() => {
-    void ConnectSDKManager.refreshAuthorizationStatus()
+    void ConnectSDKManager.refreshPermissionState()
     const sub = AppState.addEventListener(
       'change',
       (next: AppStateStatus) => {
         if (next === 'active') {
-          void ConnectSDKManager.refreshAuthorizationStatus()
+          void ConnectSDKManager.refreshPermissionState()
         }
       }
     )
     return () => sub.remove()
   }, [])
 
-  const onRequest = useCallback(async () => {
-    const result = await ConnectSDKManager.requestPushAuthorization()
-    setMessage(result.error ?? null)
+  const onRequest = useCallback(() => {
+    void ConnectSDKManager.requestPermission()
   }, [])
 
-  const canRequest = state.authorizationStatus === 'notDetermined'
+  const canRequest = state.permissionState === null
 
   return (
     <ScrollView
@@ -65,30 +61,21 @@ export function PushScreen() {
       <DemoCard title="Notification Authorization">
         <StatusRow
           label="Status"
-          value={statusText(state.authorizationStatus)}
-          indicatorColor={indicatorColor(state.authorizationStatus)}
+          value={authorizationStatusText(state.permissionState)}
+          indicatorColor={indicatorColor(state.permissionState)}
         />
         <PrimaryButton
           title="Request Authorization"
           onPress={onRequest}
           disabled={!canRequest}
         />
-        {message ? <Text style={styles.message}>{message}</Text> : null}
       </DemoCard>
     </ScrollView>
   )
 }
 
-function indicatorColor(status: AuthorizationStatus): string {
-  switch (status) {
-    case 'authorized':
-    case 'provisional':
-    case 'ephemeral':
-      return Colors.acousticGreen
-    case 'denied':
-    case 'notDetermined':
-      return Colors.middleGrey
-  }
+function indicatorColor(state: PermissionTriState): string {
+  return state === true ? Colors.acousticGreen : Colors.middleGrey
 }
 
 const styles = StyleSheet.create({
@@ -97,10 +84,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 32,
     gap: 20,
-  },
-  message: {
-    fontSize: 12,
-    color: Colors.darkGrey,
-    fontStyle: 'italic',
   },
 })

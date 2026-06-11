@@ -1,0 +1,28 @@
+// Signing.xcconfig — code-signing configuration for ConnectBareWorkflowDemo.
+//
+// Why this file exists
+// --------------------
+// Mobile push requires the app to build with an Apple Developer *team* so the
+// `aps-environment` entitlement is materialised into the signed (or, on the
+// Simulator, the "simulated") entitlements. Without a team the OS returns NO
+// APNs token — and on the Simulator it fails *silently* (no error, no token).
+//
+// Xcode's GUI injects your team automatically via "Automatically manage
+// signing", which is why push works when you Run from Xcode. Command-line
+// builds (`npm run ios`, `xcodebuild`, CI) do NOT auto-pick a team, so the
+// entitlement is dropped and registration never produces a token.
+//
+// This config is referenced as the *project-level* base configuration (set by
+// scripts/configure_signing.rb), so it applies to the app and both push
+// extensions, and survives `pod install` (CocoaPods only owns the per-target
+// base configs). It optionally includes a gitignored local override below.
+//
+// To enable CLI push testing
+// ---------------------------
+//   cp Signing.local.example.xcconfig Signing.local.xcconfig
+//   # edit Signing.local.xcconfig and set DEVELOPMENT_TEAM to your Team ID
+//
+// The committed sample stays team-free; each developer sets their own team
+// locally. The `?` makes the include optional — a fresh clone without the
+// local file still builds (only push registration is unavailable until set).
+#include? "Signing.local.xcconfig"

@@ -5,6 +5,8 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
+require 'json'
+
 # AcousticConnectDebug 2.1.12 is on the CocoaPods git Specs repo before it
 # propagates to the CDN; list both sources so `pod install` resolves it. CDN
 # stays primary (declaring any source disables the implicit CDN default).
@@ -20,6 +22,25 @@ if linkage != nil
   use_frameworks! :linkage => linkage.to_sym
 end
 
+# Resolve the Acoustic Connect SDK pod (name + version requirements) from the
+# consumer's ConnectConfig.json, mirroring AcousticConnectRN.podspec so the
+# app target and the push extensions all link the SAME SDK build:
+#   - useRelease => 'AcousticConnect', otherwise 'AcousticConnectDebug'
+#   - floor '>= 2.1.12' (the push permission API floor)
+#   - optional exact pin via Connect.iOSVersion
+# The Connect SDK pod vends the `Connect` Swift module, which is what the
+# NSE / NCE principal classes (ConnectNotificationService /
+# ConnectNotificationContentExtension) and the host AppDelegate import.
+def acoustic_connect_pod
+  connect_config = JSON.parse(File.read(File.join(__dir__, '..', 'ConnectConfig.json')))['Connect']
+  use_release = connect_config['useRelease']
+  ios_version = connect_config['iOSVersion'].to_s
+  name = use_release ? 'AcousticConnect' : 'AcousticConnectDebug'
+  floor = '>= 2.1.12'
+  requirements = ios_version.empty? ? [floor] : [floor, ios_version]
+  [name, requirements]
+end
+
 target 'ConnectBareWorkflowDemo' do
   config = use_native_modules!
 
@@ -28,6 +49,14 @@ target 'ConnectBareWorkflowDemo' do
     # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
+
+  # The Connect SDK is already pulled in transitively by AcousticConnectRN, but
+  # the host AppDelegate forwards APNs lifecycle events to ConnectSDK.shared in
+  # manual mode (see AppDelegate.swift), so it must be able to `import Connect`
+  # directly. Declaring it on the app target makes the module visible to app
+  # source. Same pod + compatible version => CocoaPods dedups, no double-link.
+  connect_name, connect_requirements = acoustic_connect_pod
+  pod connect_name, *connect_requirements
 
   post_install do |installer|
     react_native_post_install(
@@ -55,4 +84,21 @@ target 'ConnectBareWorkflowDemo' do
       end
     end
   end
+end
+
+# ── Push extensions ──────────────────────────────────────────────────────────
+#
+# The Notification Service Extension (rich-media download + PushReceived
+# logging) and Notification Content Extension (rich expansion UI) are separate
+# app-extension targets. They do NOT need React Native — only the Connect SDK,
+# whose ConnectNotificationService / ConnectNotificationContentExtension base
+# classes they subclass. Each links the SAME Connect pod as the host app.
+target 'ConnectNSE' do
+  connect_name, connect_requirements = acoustic_connect_pod
+  pod connect_name, *connect_requirements
+end
+
+target 'ConnectNCE' do
+  connect_name, connect_requirements = acoustic_connect_pod
+  pod connect_name, *connect_requirements
 end

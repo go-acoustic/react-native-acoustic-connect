@@ -17,6 +17,10 @@ buildscript {
         classpath("com.android.tools.build:gradle")
         classpath("com.facebook.react:react-native-gradle-plugin")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
+        // FCM: processes app/google-services.json. The app-level plugin is
+        // applied conditionally (only when google-services.json is present),
+        // so this classpath is harmless for the no-Firebase / no-push case.
+        classpath("com.google.gms:google-services:4.4.2")
     }
 }
 

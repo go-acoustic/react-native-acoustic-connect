@@ -4,6 +4,10 @@
         "AppKey": "YOUR_CONNECT_APP_KEY_HERE",
         "KillSwitchUrl": "https://collector.example.com/collector/switch/YOUR_CONNECT_APP_KEY_HERE",
         "PostMessageUrl": "https://collector.example.com/collector/collectorPost",
+        "PushEnabled": true,
+        "iOSPushMode": "automatic",
+        "iOSAppGroupIdentifier": "YOUR_APP_GROUP_ID_HERE",
+        "AndroidNotificationIconResName": "ic_stat_push",
         "iOSVersion": "",
         "layoutConfigAndroid": {
             "AppendMapIds": {
