@@ -34,22 +34,48 @@ Out of scope for this sample:
 ## Prerequisites
 
 - **Node** ≥ 20
-- **iOS**: Xcode 26, iOS 15.1+ simulator, CocoaPods
-- **Android**: Android Studio with API 35 SDK, JDK 17+, Android NDK,
-  Gradle 9.x (bundled), minSdk 26
-- **For push delivery (physical devices)**:
-  - iOS: an Apple Developer team, a Push Notifications-enabled App ID, and
-    an APNs key/cert configured on your Acoustic channel. APNs tokens are not
-    issued on the simulator — use a physical device for end-to-end push.
-  - Android: a Firebase project (`google-services.json`) and its FCM
-    credentials configured on your Acoustic channel.
+- **iOS**: Xcode 26, iOS 15.1+ simulator, CocoaPods (via Bundler)
+- **Android**: Android Studio with API 35 SDK, JDK 17, Android NDK,
+  Gradle 9.x (bundled), minSdk 26; `adb` on your PATH
+  (`$ANDROID_HOME/platform-tools`)
+- **For mobile push**:
+  - iOS: an Apple Developer **Team ID** set in `ios/Signing.local.xcconfig`
+    (required even on the Simulator — without it the build embeds no
+    `aps-environment` and no APNs token is issued), a Push Notifications-enabled
+    App ID, and an APNs key/cert on your Acoustic channel. Modern Simulators
+    (Xcode 14+/Apple Silicon) **do** register and receive remote pushes — only
+    the collapsed-banner rich-media **thumbnail** needs a physical device to
+    verify.
+  - Android: a **Google Play** emulator or device (a plain AOSP AVD cannot
+    receive FCM) plus a Firebase project whose `google-services.json` package
+    name matches the app's `applicationId`. The backend's FCM credentials must
+    belong to that **same** Firebase project or pushes won't deliver.
 
 ## Setup
+
+**Quick start — one command.** The bootstrap is a "doctor + full auto": it checks
+prerequisites, scaffolds any missing per-developer config from the committed
+templates, validates it, and installs dependencies. It's idempotent (safe to
+re-run) and never ships real credentials.
+
+```bash
+cd Examples/bare-workflow
+npm run bootstrap            # or: npm run bootstrap:ios / npm run bootstrap:android
+```
+
+Then fill in the per-developer files the bootstrap flags:
+
+- `ConnectConfig.json` — your AppKey + collector URLs
+- iOS: `ios/Signing.local.xcconfig` — your `DEVELOPMENT_TEAM`
+- Android: `android/app/google-services.json` — the real file from Firebase
+
+<details>
+<summary>Manual equivalent (what bootstrap automates)</summary>
 
 ```bash
 cd Examples/bare-workflow
 
-# 1. Install JS deps
+# 1. Install JS deps (run at the repo root in a workspace checkout)
 npm install
 
 # 2. iOS — pods
@@ -59,7 +85,18 @@ bundle exec pod install --project-directory=ios
 # 3. Configure your Connect credentials (gitignored)
 cp ConnectConfig.example.json ConnectConfig.json
 $EDITOR ConnectConfig.json
+
+# 4. iOS push: set your signing team (gitignored) and wire the extensions
+cp ios/Signing.local.example.xcconfig ios/Signing.local.xcconfig
+$EDITOR ios/Signing.local.xcconfig            # set DEVELOPMENT_TEAM
+ruby ios/scripts/add_push_extensions.rb
+
+# 5. Android push: drop in your real google-services.json (gitignored)
+cp android/app/google-services.json.template android/app/google-services.json
+$EDITOR android/app/google-services.json      # replace with the Firebase file
 ```
+
+</details>
 
 ## Run
 
@@ -281,6 +318,53 @@ To turn on SDK debug logging in the simulator (optional):
 xcrun simctl spawn booted launchctl setenv CONNECT_DEBUG 1
 xcrun simctl spawn booted launchctl setenv TLF_DEBUG 1
 ```
+
+## Troubleshooting
+
+First question for any push problem: **is registration failing, or is
+delivery failing?** They look identical from the app but have different fixes.
+
+- **Registration** — the device gets a token and the SDK posts a
+  `pushRegistration` (**message type 22**, with `mobileToken` and `mobileProvider`
+  `APN`/`FCM`) to the Collector. Confirm this in the logs first.
+- **Delivery** — the backend sends and the device receives. If registration works
+  but nothing arrives, the problem is backend targeting/credentials, not the app.
+
+For the full diagnostic playbook (log capture, crash triage, isolation tests), use
+the **`run-demo`** skill (`.claude/skills/run-demo/`).
+
+### Android (FCM)
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| `processDebugGoogleServices FAILED … No matching client` | `google-services.json` has no client for the app's `applicationId` | Register that exact `applicationId` in the same Firebase project, download a fresh `google-services.json` (copy from the template first). `npm run bootstrap` flags the mismatch |
+| `connect-push-fcm on classpath: false` | `firebase-messaging` not bundled | Firebase BoM in `android/build.gradle` (fixed); if it recurs, the BoM/gating is the cause |
+| `sendToken called but PushService is not initialized` | Push transport not bootstrapped | `Connect.push.enable(...)` at init in `HybridAcousticConnectRN.kt` (fixed) |
+| Token registers (msg 22) but **no notification** | Backend FCM creds not in the device's Firebase project | Firebase console → Send test message to the token to isolate device-receive vs backend-send |
+| `POST_NOTIFICATIONS granted=false` (API 33+) | Runtime permission | Tap *Request Authorization* on the Push tab, or `adb shell pm grant <pkg> android.permission.POST_NOTIFICATIONS` |
+| Stale token after update-install | `onNewToken` only fires on a fresh install | Fully uninstall for a clean token test |
+| Emulator never gets FCM | Non-Play system image | Use a **Google Play** AVD (`gms` + `vending` present) |
+| `adb: command not found` | PATH | Add `$ANDROID_HOME/platform-tools` to PATH |
+
+### iOS (APNs)
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| `npm run ios` builds but **no APNs token** | CLI builds don't auto-pick a signing team → no `aps-environment` | Set `DEVELOPMENT_TEAM` in `ios/Signing.local.xcconfig` (bootstrap copies the template) |
+| **Launch crash** `EXC_BREAKPOINT` in `ConnectNotificationCenterProxy` | Host set the `UNUserNotificationCenter` delegate in automatic mode | Don't set the delegate in automatic mode (already gated in `AppDelegate.swift`) |
+| **No rich image / NCE crash** ("Unable to find NSExtensionContextClass") | NCE didn't link `UserNotificationsUI.framework` | `ruby ios/scripts/add_push_extensions.rb` then `pod install` (bootstrap does this) |
+| **Collapsed thumbnail missing on Simulator** | Simulator doesn't render collapsed attachment thumbnails (it *does* receive push + render the expanded view) | Verify the thumbnail on a **physical device** |
+| `pod install` can't resolve `AcousticConnectDebug 2.x` | On git Specs before CDN | git Specs `source` in Podfile; run `pod repo update` |
+| Xcode 26 consteval `fmt` compile error | Apple-clang guard | `fmt` patch in Podfile `post_install` — ensure `pod install` ran |
+| `INSTALL_FAILED…` / signature mismatch | Stale install, different identity | Uninstall the app, reinstall |
+| `simctl push` shows no rich media | `simctl` doesn't run the NSE | Use a real APNs (backend) push |
+
+### Build-generated config files
+
+After any build, `android/src/main/assets/*Config*` and
+`ios/AcousticConnectRNConfig.json` show as modified — they're rewritten per-consumer
+from `ConnectConfig.json` at build time. **Don't commit them**
+(`git checkout -- <path>` to discard).
 
 ## Architecture
 

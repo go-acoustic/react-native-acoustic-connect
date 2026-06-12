@@ -5,7 +5,7 @@
         "@react-navigation/native": "^7.1.6",
         "react": "19.1.1",
         "react-native": "0.82.1",
-        "react-native-acoustic-connect-beta": "18.0.30",
+        "react-native-acoustic-connect-beta": "18.0.31",
         "react-native-gesture-handler": "^2.20.0",
         "react-native-nitro-modules": "^0.35.6",
         "react-native-safe-area-context": "^5.5.2",
@@ -32,6 +32,9 @@
     "private": true,
     "scripts": {
         "android": "react-native run-android",
+        "bootstrap": "node scripts/bootstrap.mjs",
+        "bootstrap:android": "node scripts/bootstrap.mjs --platform=android",
+        "bootstrap:ios": "node scripts/bootstrap.mjs --platform=ios",
         "ios": "react-native run-ios",
         "lint": "eslint .",
         "pods": "bundle exec pod install --project-directory=ios",
