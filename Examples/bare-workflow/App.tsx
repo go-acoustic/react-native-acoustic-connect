@@ -8,8 +8,8 @@ import {
 } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { RootNavigator } from './src/navigation/RootNavigator'
-import { ConnectSDKManager } from './src/services/ConnectSDKManager'
-import { Colors } from './src/theme/colors'
+import { ConnectSDKManager } from '@shared/services/ConnectSDKManager'
+import { Colors } from '@shared/theme/colors'
 
 /**
  * Root of the bare-workflow demo. Boots the SDK once on mount — reading

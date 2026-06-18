@@ -3,7 +3,10 @@
   "compilerOptions": {
     "strict": true,
     "jsx": "react-jsx",
-    "types": []
+    "types": [],
+    "paths": {
+      "@shared/*": ["../shared/*", "./shared/*"]
+    }
   },
-  "include": ["App.tsx", "src/**/*"]
+  "include": ["App.tsx", "src/**/*", "../shared/**/*", "./shared/**/*"]
 }

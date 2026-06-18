@@ -6,10 +6,10 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import React from 'react'
 import { StyleSheet, Text } from 'react-native'
 import { Connect } from 'react-native-acoustic-connect-beta'
-import { BehaviourScreen } from '../screens/BehaviourScreen'
-import { IdentityScreen } from '../screens/IdentityScreen'
-import { PushScreen } from '../screens/PushScreen'
-import { Colors } from '../theme/colors'
+import { BehaviourScreen } from '@shared/screens/BehaviourScreen'
+import { IdentityScreen } from '@shared/screens/IdentityScreen'
+import { PushScreen } from '@shared/screens/PushScreen'
+import { Colors } from '@shared/theme/colors'
 
 export type TabParamList = {
   Push: undefined

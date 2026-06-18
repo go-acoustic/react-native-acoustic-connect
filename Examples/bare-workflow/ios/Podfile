@@ -7,12 +7,6 @@ require Pod::Executable.execute_command('node', ['-p',
 
 require 'json'
 
-# AcousticConnectDebug 2.1.12 is on the CocoaPods git Specs repo before it
-# propagates to the CDN; list both sources so `pod install` resolves it. CDN
-# stays primary (declaring any source disables the implicit CDN default).
-source 'https://cdn.cocoapods.org/'
-source 'https://github.com/CocoaPods/Specs.git'
-
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
