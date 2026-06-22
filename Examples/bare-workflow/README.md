@@ -89,7 +89,7 @@ $EDITOR ConnectConfig.json
 # 4. iOS push: set your signing team (gitignored) and wire the extensions
 cp ios/Signing.local.example.xcconfig ios/Signing.local.xcconfig
 $EDITOR ios/Signing.local.xcconfig            # set DEVELOPMENT_TEAM
-ruby ios/scripts/add_push_extensions.rb
+npx acoustic-connect setup-ios-push
 
 # 5. Android push: drop in your real google-services.json (gitignored)
 cp android/app/google-services.json.template android/app/google-services.json
@@ -207,11 +207,11 @@ Push is configured entirely in `ConnectConfig.json` (no runtime arguments —
    stays team-free and each developer supplies their own. A free personal team
    is enough for Simulator registration.
 2. **NSE + NCE Xcode targets** are already wired into the project. They were
-   added by the committed helper script (re-run only if you regenerate the
+   added by the SDK's setup command (re-run only if you regenerate the
    Xcode project from a fresh RN template):
 
    ```bash
-   ruby ios/scripts/add_push_extensions.rb
+   npx acoustic-connect setup-ios-push
    bundle exec pod install --project-directory=ios
    ```
 
@@ -352,7 +352,7 @@ the **`run-demo`** skill (`.claude/skills/run-demo/`).
 | --- | --- | --- |
 | `npm run ios` builds but **no APNs token** | CLI builds don't auto-pick a signing team → no `aps-environment` | Set `DEVELOPMENT_TEAM` in `ios/Signing.local.xcconfig` (bootstrap copies the template) |
 | **Launch crash** `EXC_BREAKPOINT` in `ConnectNotificationCenterProxy` | Host set the `UNUserNotificationCenter` delegate in automatic mode | Don't set the delegate in automatic mode (already gated in `AppDelegate.swift`) |
-| **No rich image / NCE crash** ("Unable to find NSExtensionContextClass") | NCE didn't link `UserNotificationsUI.framework` | `ruby ios/scripts/add_push_extensions.rb` then `pod install` (bootstrap does this) |
+| **No rich image / NCE crash** ("Unable to find NSExtensionContextClass") | NCE didn't link `UserNotificationsUI.framework` | `npx acoustic-connect setup-ios-push` then `pod install` (bootstrap does this) |
 | **Collapsed thumbnail missing on Simulator** | Simulator doesn't render collapsed attachment thumbnails (it *does* receive push + render the expanded view) | Verify the thumbnail on a **physical device** |
 | `pod install` can't resolve `AcousticConnectDebug 2.x` | On git Specs before CDN | git Specs `source` in Podfile; run `pod repo update` |
 | Xcode 26 consteval `fmt` compile error | Apple-clang guard | `fmt` patch in Podfile `post_install` — ensure `pod install` ran |

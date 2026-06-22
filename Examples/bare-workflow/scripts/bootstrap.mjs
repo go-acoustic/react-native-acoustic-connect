@@ -1,10 +1,12 @@
 #!/usr/bin/env node
-// Bare-workflow demo bootstrap — "doctor + full auto".
+// Bare-workflow demo bootstrap — orchestrator over the SDK's shared setup CLI.
 //
-// One command to get the sample runnable: checks prerequisites, scaffolds any
-// missing per-developer config from the committed templates, validates it, and
-// installs dependencies. Re-runnable (idempotent) and safe to run from a fresh
-// clone of the published sample.
+// The config validation + ConnectConfig.json scaffolding that used to live here
+// now ships in the SDK package (`acoustic-connect doctor`), and the iOS push
+// extensions are wired by `acoustic-connect setup-ios-push`. This script keeps
+// the sample-specific orchestration the CLI deliberately leaves out: installing
+// JS dependencies (workspace-aware), and the per-platform toolchain / signing /
+// pod-install / google-services steps. Re-runnable (idempotent).
 //
 //   npm run bootstrap              # auto-detect platforms for this OS
 //   npm run bootstrap:ios          # iOS only (macOS)
@@ -13,21 +15,34 @@
 //
 // Flags: --platform=ios|android|auto (default auto), --skip-install, --skip-pods.
 
+import {existsSync} from 'node:fs'
 import path from 'node:path'
-import {fileURLToPath} from 'node:url'
-
-import {
-  Reporter,
-  color,
-  copyIfMissing,
-  findWorkspaceRoot,
-  info,
-  run,
-  section,
-} from './lib.mjs'
+import {fileURLToPath, pathToFileURL} from 'node:url'
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 const demoDir = path.resolve(scriptDir, '..')
+
+// Locate the SDK's bundled CLI + helpers. In-repo (workspace) it sits two
+// levels up; in a standalone published clone it's under node_modules.
+function findCliDir() {
+  const candidates = [
+    path.resolve(demoDir, '..', '..', 'cli'),
+    path.resolve(demoDir, 'node_modules', 'react-native-acoustic-connect-beta', 'cli'),
+  ]
+  return candidates.find((p) => existsSync(path.join(p, 'index.mjs')))
+}
+
+const cliDir = findCliDir()
+if (!cliDir) {
+  console.error(
+    'Could not locate the react-native-acoustic-connect-beta CLI. Run `npm install` first.',
+  )
+  process.exit(1)
+}
+
+const lib = await import(pathToFileURL(path.join(cliDir, 'lib.mjs')))
+const {Reporter, color, info, run, section, findWorkspaceRoot} = lib
+const cli = path.join(cliDir, 'index.mjs')
 
 function parseArgs(argv) {
   const flags = {platform: 'auto', skipInstall: false, skipPods: false}
@@ -39,32 +54,6 @@ function parseArgs(argv) {
   return flags
 }
 
-function checkNode(reporter) {
-  const major = Number(process.versions.node.split('.')[0])
-  if (major >= 20) reporter.pass(`Node ${process.versions.node}`)
-  else
-    reporter.fail(
-      `Node ${process.versions.node}`,
-      'Node >= 20 is required — upgrade Node and re-run',
-    )
-}
-
-// Ensure the per-developer ConnectConfig.json exists. Copied from the committed
-// partner-generic example; the developer must then fill in their AppKey +
-// collector URLs before the SDK will talk to a backend.
-function ensureConnectConfig(reporter) {
-  const dest = path.join(demoDir, 'ConnectConfig.json')
-  const src = path.join(demoDir, 'ConnectConfig.example.json')
-  const result = copyIfMissing(src, dest)
-  if (result === 'created')
-    reporter.warn(
-      'ConnectConfig.json',
-      'created from example — EDIT it: set AppKey + collector URLs (KillSwitchUrl/PostMessageUrl)',
-    )
-  else if (result === 'exists') reporter.pass('ConnectConfig.json present')
-  else reporter.fail('ConnectConfig.json', 'ConnectConfig.example.json missing')
-}
-
 function installDependencies(reporter, flags) {
   if (flags.skipInstall) {
     reporter.warn('npm install', 'skipped (--skip-install)')
@@ -72,9 +61,7 @@ function installDependencies(reporter, flags) {
   }
   const workspaceRoot = findWorkspaceRoot(demoDir)
   const installDir = workspaceRoot || demoDir
-  const where = workspaceRoot
-    ? 'workspace root (hoisted)'
-    : 'demo (standalone)'
+  const where = workspaceRoot ? 'workspace root (hoisted)' : 'demo (standalone)'
   section(`Installing JS dependencies — ${where}`)
   info(installDir)
   if (run('npm install', {cwd: installDir})) reporter.pass('npm install')
@@ -85,8 +72,8 @@ async function runPlatform(name, reporter, ctx) {
   let mod
   try {
     mod = await import(`./bootstrap.${name}.mjs`)
-  } catch {
-    reporter.warn(`${name} bootstrap`, 'no module yet — skipped')
+  } catch (err) {
+    reporter.warn(`${name} bootstrap`, `module failed to load — skipped (${err.message})`)
     return
   }
   section(`Platform: ${name}`)
@@ -100,14 +87,13 @@ async function main() {
       color.dim(`  (platform=${flags.platform})`),
   )
 
+  // 1. Config: doctor scaffolds ConnectConfig.json + validates identifiers,
+  //    App Group, and google-services. Its own summary explains any fixes.
+  const doctorOk = run(`node "${cli}" doctor "${demoDir}"`)
+
+  // 2. Sample-specific orchestration (install + per-platform toolchain).
   const reporter = new Reporter()
-  const ctx = {demoDir, flags}
-
-  section('Prerequisites')
-  checkNode(reporter)
-
-  section('Configuration')
-  ensureConnectConfig(reporter)
+  const ctx = {demoDir, flags, cli, lib}
 
   installDependencies(reporter, flags)
 
@@ -130,7 +116,7 @@ async function main() {
   ].filter(Boolean)
 
   const code = reporter.summary(nextSteps)
-  process.exit(code)
+  process.exit(code === 0 && doctorOk ? 0 : 1)
 }
 
 main().catch((err) => {

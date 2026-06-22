@@ -1,21 +1,17 @@
 // iOS bootstrap module. Invoked by bootstrap.mjs as run(ctx).
 //
-// Doctor + full-auto for the iOS half of the bare-workflow demo: signing config,
-// push-extension wiring, CocoaPods. Hard-skips on non-macOS.
+// Sample-specific iOS orchestration for the bare-workflow demo: toolchain
+// checks, signing config, and CocoaPods. The push-extension wiring (NSE + NCE)
+// is delegated to the SDK CLI (`acoustic-connect setup-ios-push`), and the
+// entitlements / App Group validation lives in `acoustic-connect doctor` (run
+// earlier by bootstrap.mjs). Shared helpers come from the SDK's cli/lib.mjs via
+// ctx.lib. Hard-skips on non-macOS.
 
 import path from 'node:path'
 
-import {
-  commandExists,
-  copyIfMissing,
-  fileExists,
-  info,
-  readText,
-  run as sh,
-} from './lib.mjs'
-
 export async function run(ctx) {
-  const {reporter, demoDir, flags} = ctx
+  const {reporter, demoDir, flags, cli, lib} = ctx
+  const {commandExists, copyIfMissing, fileExists, info, readText, run: sh} = lib
   const iosDir = path.join(demoDir, 'ios')
 
   if (process.platform !== 'darwin') {
@@ -67,39 +63,16 @@ export async function run(ctx) {
   }
 
   // ── Push extensions (NSE + NCE) ────────────────────────────────────────
-  // Idempotent: ensures the two extension targets exist and link their system
-  // frameworks (NCE needs UserNotificationsUI or it crashes on expand).
-  const scaffolder = path.join(iosDir, 'scripts', 'add_push_extensions.rb')
-  if (!commandExists('ruby'))
-    reporter.warn('Push extensions', 'ruby not found — skipped add_push_extensions.rb')
-  else if (!fileExists(scaffolder))
-    reporter.warn('Push extensions', 'add_push_extensions.rb missing — skipped')
-  // Run via the absolute `scaffolder` path (not a cwd-relative one) so execution
-  // doesn't depend on the working directory. The script resolves its own paths
-  // from `__dir__`, so cwd is irrelevant to it; we still pin cwd to iosDir as a
-  // sensible default. Quoted in case the checkout path contains spaces.
-  else if (sh(`ruby "${scaffolder}"`, {cwd: iosDir}))
+  // Delegated to the SDK CLI: it writes the per-extension Swift/Info.plist/
+  // entitlements from the shared templates (App Group from ConnectConfig.json)
+  // and wires the Xcode targets idempotently. Same path Expo clients get via
+  // the Config Plugin.
+  if (sh(`node "${cli}" setup-ios-push "${demoDir}"`))
     reporter.pass('Push extensions wired (NSE + NCE)')
   else
     reporter.fail(
       'Push extensions',
-      'add_push_extensions.rb failed (needs the xcodeproj gem — ships with CocoaPods)',
-    )
-
-  // ── Entitlements sanity ────────────────────────────────────────────────
-  const ent = readText(
-    path.join(
-      iosDir,
-      'ConnectBareWorkflowDemo',
-      'ConnectBareWorkflowDemo.entitlements',
-    ),
-  )
-  if (ent && ent.includes('aps-environment') && ent.includes('application-groups'))
-    reporter.pass('App entitlements (aps-environment + App Group)')
-  else
-    reporter.warn(
-      'App entitlements',
-      'aps-environment / App Group not found in ConnectBareWorkflowDemo.entitlements',
+      'acoustic-connect setup-ios-push failed — needs ruby + the xcodeproj gem (ships with CocoaPods)',
     )
 
   // ── CocoaPods install ──────────────────────────────────────────────────

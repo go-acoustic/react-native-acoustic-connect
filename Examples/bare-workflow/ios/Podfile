@@ -7,6 +7,15 @@ require Pod::Executable.execute_command('node', ['-p',
 
 require 'json'
 
+# Resolve the Acoustic Connect SDK pod helper with node so it works whether the
+# package is hoisted (workspace) or in the app's own node_modules (standalone).
+# Provides `acoustic_connect_pod(__dir__)` — see the SDK's cli/ios/connect_pods.rb.
+require Pod::Executable.execute_command('node', ['-p',
+  'require.resolve(
+    "react-native-acoustic-connect-beta/cli/ios/connect_pods.rb",
+    {paths: [process.argv[1]]},
+  )', __dir__]).strip
+
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
@@ -16,24 +25,14 @@ if linkage != nil
   use_frameworks! :linkage => linkage.to_sym
 end
 
-# Resolve the Acoustic Connect SDK pod (name + version requirements) from the
-# consumer's ConnectConfig.json, mirroring AcousticConnectRN.podspec so the
-# app target and the push extensions all link the SAME SDK build:
-#   - useRelease => 'AcousticConnect', otherwise 'AcousticConnectDebug'
-#   - floor '>= 2.1.12' (the push permission API floor)
-#   - optional exact pin via Connect.iOSVersion
-# The Connect SDK pod vends the `Connect` Swift module, which is what the
+# `acoustic_connect_pod(__dir__)` resolves the Connect SDK pod (name + version
+# requirements) from the consumer's ConnectConfig.json, mirroring
+# AcousticConnectRN.podspec so the app target and the push extensions all link
+# the SAME SDK build. It vends the `Connect` Swift module, which is what the
 # NSE / NCE principal classes (ConnectNotificationService /
 # ConnectNotificationContentExtension) and the host AppDelegate import.
-def acoustic_connect_pod
-  connect_config = JSON.parse(File.read(File.join(__dir__, '..', 'ConnectConfig.json')))['Connect']
-  use_release = connect_config['useRelease']
-  ios_version = connect_config['iOSVersion'].to_s
-  name = use_release ? 'AcousticConnect' : 'AcousticConnectDebug'
-  floor = '>= 2.1.12'
-  requirements = ios_version.empty? ? [floor] : [floor, ios_version]
-  [name, requirements]
-end
+# The helper now lives in the SDK package (required above) — see
+# cli/ios/connect_pods.rb.
 
 target 'ConnectBareWorkflowDemo' do
   config = use_native_modules!
@@ -49,7 +48,7 @@ target 'ConnectBareWorkflowDemo' do
   # manual mode (see AppDelegate.swift), so it must be able to `import Connect`
   # directly. Declaring it on the app target makes the module visible to app
   # source. Same pod + compatible version => CocoaPods dedups, no double-link.
-  connect_name, connect_requirements = acoustic_connect_pod
+  connect_name, connect_requirements = acoustic_connect_pod(__dir__)
   pod connect_name, *connect_requirements
 
   post_install do |installer|
@@ -88,11 +87,11 @@ end
 # whose ConnectNotificationService / ConnectNotificationContentExtension base
 # classes they subclass. Each links the SAME Connect pod as the host app.
 target 'ConnectNSE' do
-  connect_name, connect_requirements = acoustic_connect_pod
+  connect_name, connect_requirements = acoustic_connect_pod(__dir__)
   pod connect_name, *connect_requirements
 end
 
 target 'ConnectNCE' do
-  connect_name, connect_requirements = acoustic_connect_pod
+  connect_name, connect_requirements = acoustic_connect_pod(__dir__)
   pod connect_name, *connect_requirements
 end
