@@ -42,22 +42,31 @@ needed to re-enable after a `disable()`. The `<Connect>` analytics wrapper in
 
 Run the bootstrap doctor — it scaffolds `ConnectConfig.json` from the example,
 validates the config (App Group format, Java-safe Android package,
-`google-services.json` package match), and installs dependencies:
+`google-services.json` package match, signing team), and installs dependencies:
 
 ```bash
 npm run bootstrap
 ```
 
+When `PushEnabled` is `true`, `acoustic-connect doctor` **fails** (exits
+non-zero) on any missing push input; when push is off it needs only `AppKey`.
+
 Then fill in your own values:
 
 1. **App identity in [`app.json`](app.json)** — replace the
    `com.example.connectexpodemo` placeholders for `ios.bundleIdentifier` and
-   `android.package` with your own. This is the standard Expo step (the SDK
-   validates but never rewrites `app.json`); `npm run bootstrap` warns while
-   they're still on the placeholder.
+   `android.package` with your own. They must be ids that exist in your
+   `google-services.json` (Android/FCM) and your APNs configuration (iOS) before
+   you build with push. The SDK validates but never rewrites `app.json`; under
+   push the doctor **fails** while they're still on the placeholder.
+   **Changing them requires a clean prebuild**
+   (`npx expo prebuild --platform android --clean`) — an incremental prebuild
+   keeps the stale `applicationId`/`namespace`.
 2. **`ConnectConfig.json`** — set `AppKey`, `PostMessageUrl`, `KillSwitchUrl`,
-   and (for push) `iOSAppGroupIdentifier`. Single source of truth; **baked into
-   the native build at build time** (see Troubleshooting).
+   and (for push) `iOSAppGroupIdentifier` + `iOSDevelopmentTeam` (your 10-char
+   Apple Team ID — required so the iOS build embeds `aps-environment`; without
+   it the OS issues no APNs token). Single source of truth; **baked into the
+   native build at build time** (see Troubleshooting).
 3. **`google-services.json`** — for Android FCM. Its package **must** match
    `app.json` → `android.package` (FCM matches by package). Register that
    package in the Firebase console and download the file here.
@@ -203,7 +212,8 @@ initialized` / `push enable failed` — that means step 2 is missing.
 | Symptom | Fix |
 |---|---|
 | Android build: *"'new' is a Java keyword"* | `android.package` can't contain a Java keyword. Use a Java-safe package and register it in Firebase. |
-| Android build: *no matching client in google-services.json* | The Firebase package must equal `app.json` → `android.package`. Re-register + re-download. |
+| Android build: *no matching client in google-services.json* | The Firebase package must equal `app.json` → `android.package`. Re-register + re-download. The config plugin + doctor now fail fast with this message. After changing `android.package`, run `npx expo prebuild --platform android --clean`. |
+| iOS push: session reaches the collector but no notifications (no APNs token) | No signing team → ad-hoc signing drops `aps-environment`. Set `iOSDevelopmentTeam` in `ConnectConfig.json`, re-run `expo prebuild`, and build with `-allowProvisioningUpdates` (`npx expo run:ios -- --extra-params "-allowProvisioningUpdates"`). |
 | iOS `run:ios` crashes at install (`LockdowndClient`) | Expo CLI bug; build is fine. Use `xcrun devicectl device install app` (see Run). |
 | Config changes don't take effect | `ConnectConfig.json` is baked at build / `pod install` time. Rebuild with `npx expo prebuild --clean` — a Metro reload is not enough. |
 | Verifying the effective collector / "no session" | The bridge logs `PostMessageUrl` + `SDK initialised` at **info** level. In **Console.app**: Action → *Include Info Messages*, filter subsystem `com.acoustic.AcousticConnectRN`. The bundled `ConnectBasicConfig.plist` is a pod demo fallback — the runtime collector comes from `ConnectConfig.json` (programmatic init), so ignore the plist. A static screen may not generate signals to flush — background the app, or use the full UI in the sample-app task. |

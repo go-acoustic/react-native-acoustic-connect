@@ -331,7 +331,8 @@ delivery failing?** They look identical from the app but have different fixes.
   but nothing arrives, the problem is backend targeting/credentials, not the app.
 
 For the full diagnostic playbook (log capture, crash triage, isolation tests), use
-the **`run-demo`** skill (`.claude/skills/run-demo/`).
+the **`run-demo-push`** skill (`.claude/skills/run-demo-push/`), and run
+`npx acoustic-connect doctor` before building to validate your push config.
 
 ### Android (FCM)
 

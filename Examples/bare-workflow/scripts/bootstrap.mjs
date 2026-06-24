@@ -112,7 +112,7 @@ async function main() {
     'Start Metro:  npm run start',
     isMac ? 'Run iOS:      npm run ios' : null,
     'Run Android:  npm run android',
-    'Stuck? See README "Troubleshooting" or run the /run-demo skill',
+    'Stuck? See README "Troubleshooting" or run the /run-demo-push skill',
   ].filter(Boolean)
 
   const code = reporter.summary(nextSteps)

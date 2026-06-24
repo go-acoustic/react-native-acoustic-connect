@@ -66,7 +66,7 @@ const isMac = process.platform === 'darwin'
 section('Next steps')
 for (const s of [
   'Set your own ids in app.json: ios.bundleIdentifier + android.package (they ship as com.example.* placeholders)',
-  'Fill in ConnectConfig.json (AppKey + collector URLs) if you have not yet',
+  'Fill in ConnectConfig.json (AppKey + collector URLs; for push also iOSAppGroupIdentifier + iOSDevelopmentTeam)',
   'Create the App Group on the Apple Developer portal + enable it on the host + ConnectNSE + ConnectNCE App IDs',
   'EAS builds: run `eas init` to attach your own EAS project (the sample ships no projectId/owner)',
   isMac ? 'iOS:      npx expo run:ios --device' : null,

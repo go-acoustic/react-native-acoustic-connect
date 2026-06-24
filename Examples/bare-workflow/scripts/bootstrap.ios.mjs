@@ -11,7 +11,7 @@ import path from 'node:path'
 
 export async function run(ctx) {
   const {reporter, demoDir, flags, cli, lib} = ctx
-  const {commandExists, copyIfMissing, fileExists, info, readText, run: sh} = lib
+  const {commandExists, copyIfMissing, fileExists, info, run: sh} = lib
   const iosDir = path.join(demoDir, 'ios')
 
   if (process.platform !== 'darwin') {
@@ -35,32 +35,23 @@ export async function run(ctx) {
       'neither bundler nor pod found — gem install bundler (then bundle install)',
     )
 
-  // ── Signing (the CLI no-token gotcha) ──────────────────────────────────
-  // CLI builds (npm run ios / xcodebuild) don't auto-pick a team like the
-  // Xcode GUI, so aps-environment is never embedded and no APNs token is
-  // issued. The team is supplied per-developer via the gitignored
-  // Signing.local.xcconfig.
+  // ── Signing config scaffold (validation owned by doctor) ───────────────
+  // Scaffold the gitignored per-developer Signing.local.xcconfig from the
+  // example so there's a file to edit. The signing team itself is now validated
+  // by `acoustic-connect doctor` (Connect.iOSDevelopmentTeam — run earlier by
+  // bootstrap.mjs) and stamped onto the host + extensions by setup-ios-push,
+  // so this script no longer re-checks the team value.
   const signingLocal = path.join(iosDir, 'Signing.local.xcconfig')
   const signingExample = path.join(iosDir, 'Signing.local.example.xcconfig')
   const copied = copyIfMissing(signingExample, signingLocal)
   if (copied === 'created')
     reporter.warn(
       'ios/Signing.local.xcconfig',
-      'created — set DEVELOPMENT_TEAM to your 10-char Apple Team ID (no token until you do)',
+      'created from example — optional per-developer signing override',
     )
   else if (copied === 'no-template')
     reporter.fail('ios/Signing.local.xcconfig', 'example template missing')
-  else {
-    const team = (readText(signingLocal) || '').match(
-      /^\s*DEVELOPMENT_TEAM\s*=\s*(\S+)/m,
-    )?.[1]
-    if (!team || team === 'YOUR_TEAM_ID')
-      reporter.warn(
-        'DEVELOPMENT_TEAM',
-        'not set in ios/Signing.local.xcconfig — APNs registration yields no token until set',
-      )
-    else reporter.pass('DEVELOPMENT_TEAM set', team)
-  }
+  else reporter.pass('ios/Signing.local.xcconfig present')
 
   // ── Push extensions (NSE + NCE) ────────────────────────────────────────
   // Delegated to the SDK CLI: it writes the per-extension Swift/Info.plist/
