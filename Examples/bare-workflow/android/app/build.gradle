@@ -151,7 +151,7 @@ dependencies {
 // for workspace members (npm doesn't re-run postinstall on workspace
 // symlinks) or for the standalone published sample (already installed),
 // so the line lives committed.
-apply from: project(':react-native-acoustic-connect-beta').projectDir.getPath() + "/config.gradle"
+apply from: resolveNodeModule('react-native-acoustic-connect-beta', rootDir).getAbsolutePath() + "/android/config.gradle"
 
 // Resolve a Node package's directory via `node -p require.resolve(...)`.
 // Throws a Gradle-friendly exception (not an opaque NPE) when Node is
