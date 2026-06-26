@@ -92,17 +92,22 @@ npx expo run:ios --device      # or: npx expo run:android
 prebuild), installs, starts Metro, and launches the app. The SDK initialises on
 load; no JS-side `enable()` call is needed.
 
-If the iOS install step crashes with `LockdowndClient ... Cannot convert object
-to primitive value`, that's an Expo CLI bug — the build itself succeeded.
-Install the built app directly and start Metro yourself:
-
-```bash
-xcrun devicectl device install app --device <UDID> \
-  "$(ls -dt ~/Library/Developer/Xcode/DerivedData/*/Build/Products/Debug-iphoneos/*.app | head -1)"
-npx expo start --dev-client
-```
-
-(Or open `ios/*.xcworkspace` in Xcode and press Run.)
+> **Note — the `LockdowndClient ... Cannot convert object to primitive value`
+> crash on iOS device installs is patched in this sample.** This was a bug in
+> **Expo CLI** (`@expo/cli`), **not** in the Acoustic Connect SDK. `npm install`
+> applies the fix automatically (via `patch-package` — see
+> [`patches/README.md`](patches/README.md)), so `expo run:ios --device` installs
+> cleanly. If you ever hit it again (e.g. a different `@expo/cli` version), the
+> build itself still succeeded — install the built app directly and start Metro
+> yourself:
+>
+> ```bash
+> xcrun devicectl device install app --device <UDID> \
+>   "$(ls -dt ~/Library/Developer/Xcode/DerivedData/*/Build/Products/Debug-iphoneos/*.app | head -1)"
+> npx expo start --dev-client
+> ```
+>
+> (Or open `ios/*.xcworkspace` in Xcode and press Run.)
 
 ### Verifying the Config Plugin output
 
@@ -214,7 +219,7 @@ initialized` / `push enable failed` — that means step 2 is missing.
 | Android build: *"'new' is a Java keyword"* | `android.package` can't contain a Java keyword. Use a Java-safe package and register it in Firebase. |
 | Android build: *no matching client in google-services.json* | The Firebase package must equal `app.json` → `android.package`. Re-register + re-download. The config plugin + doctor now fail fast with this message. After changing `android.package`, run `npx expo prebuild --platform android --clean`. |
 | iOS push: session reaches the collector but no notifications (no APNs token) | No signing team → ad-hoc signing drops `aps-environment`. Set `iOSDevelopmentTeam` in `ConnectConfig.json`, re-run `expo prebuild`, and build with `-allowProvisioningUpdates` (`npx expo run:ios -- --extra-params "-allowProvisioningUpdates"`). |
-| iOS `run:ios` crashes at install (`LockdowndClient`) | Expo CLI bug; build is fine. Use `xcrun devicectl device install app` (see Run). |
+| iOS `run:ios` crashes at install (`LockdowndClient ... Cannot convert object to primitive value`) | **Expo CLI bug, not the SDK** — patched automatically by `npm install` (`patch-package`, see [`patches/README.md`](patches/README.md)). Build is fine regardless; fallback is `xcrun devicectl device install app` (see Run). |
 | Config changes don't take effect | `ConnectConfig.json` is baked at build / `pod install` time. Rebuild with `npx expo prebuild --clean` — a Metro reload is not enough. |
 | Verifying the effective collector / "no session" | The bridge logs `PostMessageUrl` + `SDK initialised` at **info** level. In **Console.app**: Action → *Include Info Messages*, filter subsystem `com.acoustic.AcousticConnectRN`. The bundled `ConnectBasicConfig.plist` is a pod demo fallback — the runtime collector comes from `ConnectConfig.json` (programmatic init), so ignore the plist. A static screen may not generate signals to flush — background the app, or use the full UI in the sample-app task. |
 | Metro serving the wrong code | If you have multiple SDK checkouts, build **and** run Metro from the same one. Kill stray Metro: `lsof -nP -iTCP:8081 -sTCP:LISTEN`. |
