@@ -43,6 +43,11 @@ app-example
 /android
 ConnectConfig.json
 
+# bundler: Gemfile + Gemfile.lock are committed (deterministic CocoaPods,
+# mirroring example/); only the local config and vendored gems are ignored.
+.bundle/
+vendor/
+
 # push / signing credentials — never commit
 google-services.json
 GoogleService-Info.plist
