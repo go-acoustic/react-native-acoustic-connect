@@ -27,10 +27,6 @@ ios/.xcode.env.local
 **/*.xcuserstate
 **/*.xcuserdatad/
 
-# Local code-signing team for CLI push testing — each dev sets their own.
-# Template: ios/Signing.local.example.xcconfig (committed).
-ios/Signing.local.xcconfig
-
 # Android — gradle caches, build outputs, IDE state
 android/.gradle/
 android/build/

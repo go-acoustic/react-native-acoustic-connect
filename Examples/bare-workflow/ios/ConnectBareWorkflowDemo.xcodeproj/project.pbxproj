@@ -64,7 +64,6 @@
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ConnectBareWorkflowDemo/Info.plist; sourceTree = "<group>"; };
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = ConnectBareWorkflowDemo/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		13FFD33F815D98A8240CC708 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
-		1780ECE02BF12054008AA6FE /* Signing.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 		1F2710CFAD6A15E63411E7D7 /* ConnectNSE.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ConnectNSE.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		204BFDDCACB338F9EC5EFCD0 /* ConnectBareWorkflowDemo.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; name = ConnectBareWorkflowDemo.entitlements; path = ConnectBareWorkflowDemo/ConnectBareWorkflowDemo.entitlements; sourceTree = "<group>"; };
 		3B4392A12AC88292D35C810B /* Pods-ConnectBareWorkflowDemo.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ConnectBareWorkflowDemo.debug.xcconfig"; path = "Target Support Files/Pods-ConnectBareWorkflowDemo/Pods-ConnectBareWorkflowDemo.debug.xcconfig"; sourceTree = "<group>"; };
@@ -187,7 +186,6 @@
 				BBD78D7AC51CEA395F1C20DB /* Pods */,
 				049F7CE2525246CB5EA63C8A /* ConnectNSE */,
 				0CF07DCD7B349BF6C8C16D4A /* ConnectNCE */,
-				1780ECE02BF12054008AA6FE /* Signing.xcconfig */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -666,7 +664,6 @@
 		};
 		83CBBA201A601CBA00E9B192 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 1780ECE02BF12054008AA6FE /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
@@ -743,7 +740,6 @@
 		};
 		83CBBA211A601CBA00E9B192 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 1780ECE02BF12054008AA6FE /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;

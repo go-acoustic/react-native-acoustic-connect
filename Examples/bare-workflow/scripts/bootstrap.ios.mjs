@@ -11,8 +11,7 @@ import path from 'node:path'
 
 export async function run(ctx) {
   const {reporter, demoDir, flags, cli, lib} = ctx
-  const {commandExists, copyIfMissing, fileExists, info, run: sh} = lib
-  const iosDir = path.join(demoDir, 'ios')
+  const {commandExists, fileExists, info, run: sh} = lib
 
   if (process.platform !== 'darwin') {
     reporter.warn('iOS', 'skipped — iOS builds require macOS')
@@ -35,23 +34,15 @@ export async function run(ctx) {
       'neither bundler nor pod found — gem install bundler (then bundle install)',
     )
 
-  // ── Signing config scaffold (validation owned by doctor) ───────────────
-  // Scaffold the gitignored per-developer Signing.local.xcconfig from the
-  // example so there's a file to edit. The signing team itself is now validated
-  // by `acoustic-connect doctor` (Connect.iOSDevelopmentTeam — run earlier by
-  // bootstrap.mjs) and stamped onto the host + extensions by setup-ios-push,
-  // so this script no longer re-checks the team value.
-  const signingLocal = path.join(iosDir, 'Signing.local.xcconfig')
-  const signingExample = path.join(iosDir, 'Signing.local.example.xcconfig')
-  const copied = copyIfMissing(signingExample, signingLocal)
-  if (copied === 'created')
-    reporter.warn(
-      'ios/Signing.local.xcconfig',
-      'created from example — optional per-developer signing override',
-    )
-  else if (copied === 'no-template')
-    reporter.fail('ios/Signing.local.xcconfig', 'example template missing')
-  else reporter.pass('ios/Signing.local.xcconfig present')
+  // ── Signing team (single source: ConnectConfig.json) ──────────────────
+  // The signing team has one source of truth — `Connect.iOSDevelopmentTeam`
+  // in ConnectConfig.json. It's validated by `acoustic-connect doctor` (run
+  // earlier by bootstrap.mjs) and stamped onto the host + both extensions by
+  // setup-ios-push below. There is no Signing.xcconfig fallback any more.
+  //
+  // Note: setup-ios-push writes DEVELOPMENT_TEAM into the (committed) Xcode
+  // project, so after bootstrapping with a team set, `git status` will show a
+  // modified project.pbxproj carrying your personal Team ID — do not commit it.
 
   // ── Push extensions (NSE + NCE) ────────────────────────────────────────
   // Delegated to the SDK CLI: it writes the per-extension Swift/Info.plist/

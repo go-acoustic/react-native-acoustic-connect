@@ -164,6 +164,42 @@ Two repo-specific pieces make this work and are already wired:
   resolves on the clean worker.
 - A repo-root **`.easignore`** keeps the upload small.
 
+### iOS signing — the team must be set or the archive fails
+
+The Config Plugin provisions the `ConnectNSE` + `ConnectNCE` extension targets,
+and since Xcode 14 every extension/resource-bundle target must sign with a
+development team. If no team is configured, the EAS archive **fails outright**:
+
+```text
+❌ Signing for "ConnectNCE" requires a development team … (target 'ConnectNCE')
+❌ Signing for "ConnectNSE" requires a development team … (target 'ConnectNSE')
+```
+
+Set your 10-char Apple Team ID so the plugin's signing mod stamps
+`DEVELOPMENT_TEAM` onto the host + both extensions during the worker prebuild.
+Either source works:
+
+- `Connect.iOSDevelopmentTeam` in `ConnectConfig.json` — the canonical source
+  (uploaded to the worker; `.easignore` does not exclude it), **or**
+- the `iosDevelopmentTeam` plugin prop in `app.json` — an override, and the more
+  robust choice for shared/CI setups because `app.json` is committed whereas
+  `ConnectConfig.json` is per-developer:
+
+  ```jsonc
+  "plugins": [
+    ["react-native-acoustic-connect-beta", {
+      "iosDevelopmentTeam": "ABCDE12345",
+      "iosAppGroupIdentifier": "group.<your.bundle.id>"
+    }]
+  ]
+  ```
+
+EAS-managed credentials also need provisioning profiles for the two extension
+App IDs (`<bundleId>.ConnectNSE`, `<bundleId>.ConnectNCE`). If a build fails on
+*provisioning* rather than *team*, run `eas credentials` (or let the interactive
+`eas build` prompt) to generate them, and enable the App Groups capability on
+the host + both extension App IDs.
+
 ## Android push (FCM)
 
 Android push needs **no app code** — the Connect SDK auto-enables the FCM

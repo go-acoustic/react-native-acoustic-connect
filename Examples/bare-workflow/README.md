@@ -39,10 +39,11 @@ Out of scope for this sample:
   Gradle 9.x (bundled), minSdk 26; `adb` on your PATH
   (`$ANDROID_HOME/platform-tools`)
 - **For mobile push**:
-  - iOS: an Apple Developer **Team ID** set in `ios/Signing.local.xcconfig`
-    (required even on the Simulator — without it the build embeds no
-    `aps-environment` and no APNs token is issued), a Push Notifications-enabled
-    App ID, and an APNs key/cert on your Acoustic channel. Modern Simulators
+  - iOS: an Apple Developer **Team ID** set as `Connect.iOSDevelopmentTeam`
+    in `ConnectConfig.json` (required even on the Simulator — without it the
+    build embeds no `aps-environment` and no APNs token is issued), a Push
+    Notifications-enabled App ID, and an APNs key/cert on your Acoustic
+    channel. Modern Simulators
     (Xcode 14+/Apple Silicon) **do** register and receive remote pushes — only
     the collapsed-banner rich-media **thumbnail** needs a physical device to
     verify.
@@ -65,8 +66,9 @@ npm run bootstrap            # or: npm run bootstrap:ios / npm run bootstrap:and
 
 Then fill in the per-developer files the bootstrap flags:
 
-- `ConnectConfig.json` — your AppKey + collector URLs
-- iOS: `ios/Signing.local.xcconfig` — your `DEVELOPMENT_TEAM`
+- `ConnectConfig.json` — your AppKey + collector URLs, and (for iOS push)
+  `Connect.iOSDevelopmentTeam` (your 10-char Apple Team ID) +
+  `Connect.iOSAppGroupIdentifier`
 - Android: `android/app/google-services.json` — the real file from Firebase
 
 <details>
@@ -86,9 +88,10 @@ bundle exec pod install --project-directory=ios
 cp ConnectConfig.example.json ConnectConfig.json
 $EDITOR ConnectConfig.json
 
-# 4. iOS push: set your signing team (gitignored) and wire the extensions
-cp ios/Signing.local.example.xcconfig ios/Signing.local.xcconfig
-$EDITOR ios/Signing.local.xcconfig            # set DEVELOPMENT_TEAM
+# 4. iOS push: set your signing team in ConnectConfig.json, then wire the
+#    extensions. setup-ios-push stamps DEVELOPMENT_TEAM (from
+#    Connect.iOSDevelopmentTeam) onto the host app + both extensions.
+$EDITOR ConnectConfig.json                    # set Connect.iOSDevelopmentTeam
 npx acoustic-connect setup-ios-push
 
 # 5. Android push: drop in your real google-services.json (gitignored)
@@ -195,17 +198,31 @@ Push is configured entirely in `ConnectConfig.json` (no runtime arguments —
    CI) do not auto-pick a team** — without it the OS returns no APNs token, and
    on the Simulator it fails *silently* (a session reaches the collector but no
    `mobileToken`/PushRegistration). To enable push from the CLI, set your team
-   once:
+   once in `ConnectConfig.json` and re-run the push wiring:
 
    ```bash
-   cp ios/Signing.local.example.xcconfig ios/Signing.local.xcconfig
-   # edit ios/Signing.local.xcconfig → DEVELOPMENT_TEAM = <your 10-char Team ID>
+   # ConnectConfig.json → "Connect": { "iOSDevelopmentTeam": "<10-char Team ID>" }
+   npx acoustic-connect setup-ios-push
    ```
 
-   `ios/Signing.local.xcconfig` is gitignored; `ios/Signing.xcconfig` (the
-   project-level base config) optionally includes it, so the committed sample
-   stays team-free and each developer supplies their own. A free personal team
-   is enough for Simulator registration.
+   `Connect.iOSDevelopmentTeam` is the single source of truth for the signing
+   team — `setup-ios-push` stamps `DEVELOPMENT_TEAM` onto the host app and both
+   extensions. A free personal team is enough for Simulator registration.
+
+   > ⚠️ This stamps your Team ID into the **committed** `project.pbxproj`, so
+   > `git status` will show it modified after bootstrap. The committed sample is
+   > team-free on purpose — **do not commit your personal Team ID.** To keep the
+   > file clean, either revert it before staging:
+   >
+   > ```bash
+   > git checkout -- ios/ConnectBareWorkflowDemo.xcodeproj/project.pbxproj
+   > ```
+   >
+   > or tell git to ignore your local edits for the session:
+   >
+   > ```bash
+   > git update-index --skip-worktree ios/ConnectBareWorkflowDemo.xcodeproj/project.pbxproj
+   > ```
 2. **NSE + NCE Xcode targets** are already wired into the project. They were
    added by the SDK's setup command (re-run only if you regenerate the
    Xcode project from a fresh RN template):
@@ -351,7 +368,7 @@ the **`run-demo-push`** skill (`.claude/skills/run-demo-push/`), and run
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| `npm run ios` builds but **no APNs token** | CLI builds don't auto-pick a signing team → no `aps-environment` | Set `DEVELOPMENT_TEAM` in `ios/Signing.local.xcconfig` (bootstrap copies the template) |
+| `npm run ios` builds but **no APNs token** | CLI builds don't auto-pick a signing team → no `aps-environment` | Set `Connect.iOSDevelopmentTeam` in `ConnectConfig.json`, then `npx acoustic-connect setup-ios-push` (bootstrap does this) to stamp `DEVELOPMENT_TEAM` on host + extensions |
 | **Launch crash** `EXC_BREAKPOINT` in `ConnectNotificationCenterProxy` | Host set the `UNUserNotificationCenter` delegate in automatic mode | Don't set the delegate in automatic mode (already gated in `AppDelegate.swift`) |
 | **No rich image / NCE crash** ("Unable to find NSExtensionContextClass") | NCE didn't link `UserNotificationsUI.framework` | `npx acoustic-connect setup-ios-push` then `pod install` (bootstrap does this) |
 | **Collapsed thumbnail missing on Simulator** | Simulator doesn't render collapsed attachment thumbnails (it *does* receive push + render the expanded view) | Verify the thumbnail on a **physical device** |

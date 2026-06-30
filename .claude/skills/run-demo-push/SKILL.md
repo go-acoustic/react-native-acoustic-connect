@@ -56,9 +56,11 @@ npm run android
 ```
 
 Bootstrap copies any missing per-developer config from the committed templates
-(`ConnectConfig.json` ← `ConnectConfig.example.json`; iOS `Signing.local.xcconfig`;
-Android `google-services.json`) and tells you exactly what to fill in. It never
-contains real credentials — the sample is published to partners.
+(`ConnectConfig.json` ← `ConnectConfig.example.json`; Android
+`google-services.json`) and tells you exactly what to fill in. The iOS signing
+team lives in `ConnectConfig.json` (`Connect.iOSDevelopmentTeam`) — there is no
+separate signing file. It never contains real credentials — the sample is
+published to partners.
 
 ### Expo (`Examples/expo/`)
 
@@ -142,7 +144,10 @@ Always confirm both build **and** runtime. For push specifically:
 These were root-caused and fixed previously — if they recur, the named place is
 where to look:
 
-- iOS CLI no-token → `DEVELOPMENT_TEAM` via `ios/Signing.local.xcconfig`.
+- iOS CLI no-token → set `Connect.iOSDevelopmentTeam` in `ConnectConfig.json`,
+  then `acoustic-connect setup-ios-push` stamps `DEVELOPMENT_TEAM` on host + NSE
+  + NCE. (EAS path: the Config Plugin's signing mod stamps it during prebuild;
+  without a team the NSE/NCE archive fails "Signing requires a development team".)
 - iOS NCE crash on expand → NCE must link `UserNotificationsUI.framework`.
   bare-workflow: wired by `acoustic-connect setup-ios-push` /
   `cli/ios/add_push_extensions.rb`. Expo: the Config Plugin's NCE
