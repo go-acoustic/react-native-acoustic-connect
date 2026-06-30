@@ -1,0 +1,97 @@
+# Resolve react_native_pods.rb with node to allow for hoisting
+require Pod::Executable.execute_command('node', ['-p',
+  'require.resolve(
+    "react-native/scripts/react_native_pods.rb",
+    {paths: [process.argv[1]]},
+  )', __dir__]).strip
+
+require 'json'
+
+# Resolve the Acoustic Connect SDK pod helper with node so it works whether the
+# package is hoisted (workspace) or in the app's own node_modules (standalone).
+# Provides `acoustic_connect_pod(__dir__)` — see the SDK's cli/ios/connect_pods.rb.
+require Pod::Executable.execute_command('node', ['-p',
+  'require.resolve(
+    "react-native-acoustic-connect/cli/ios/connect_pods.rb",
+    {paths: [process.argv[1]]},
+  )', __dir__]).strip
+
+platform :ios, min_ios_version_supported
+prepare_react_native_project!
+
+linkage = ENV['USE_FRAMEWORKS']
+if linkage != nil
+  Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
+  use_frameworks! :linkage => linkage.to_sym
+end
+
+# `acoustic_connect_pod(__dir__)` resolves the Connect SDK pod (name + version
+# requirements) from the consumer's ConnectConfig.json, mirroring
+# AcousticConnectRN.podspec so the app target and the push extensions all link
+# the SAME SDK build. It vends the `Connect` Swift module, which is what the
+# NSE / NCE principal classes (ConnectNotificationService /
+# ConnectNotificationContentExtension) and the host AppDelegate import.
+# The helper now lives in the SDK package (required above) — see
+# cli/ios/connect_pods.rb.
+
+target 'ConnectBareWorkflowDemo' do
+  config = use_native_modules!
+
+  use_react_native!(
+    :path => config[:reactNativePath],
+    # An absolute path to your application root.
+    :app_path => "#{Pod::Config.instance.installation_root}/.."
+  )
+
+  # The Connect SDK is already pulled in transitively by AcousticConnectRN, but
+  # the host AppDelegate forwards APNs lifecycle events to ConnectSDK.shared in
+  # manual mode (see AppDelegate.swift), so it must be able to `import Connect`
+  # directly. Declaring it on the app target makes the module visible to app
+  # source. Same pod + compatible version => CocoaPods dedups, no double-link.
+  connect_name, connect_requirements = acoustic_connect_pod(__dir__)
+  pod connect_name, *connect_requirements
+
+  post_install do |installer|
+    react_native_post_install(
+      installer,
+      config[:reactNativePath],
+      :mac_catalyst_enabled => false,
+      # :ccache_enabled => true
+    )
+
+    # Xcode 26+ fmt patch — relaxes the `__apple_build_version__` guard in
+    # `fmt/include/fmt/base.h` so the non-consteval format path is used on
+    # newer Apple clang. Without this, `fmt/src/format.cc` fails to compile
+    # with "call to consteval function is not a constant expression" errors
+    # across both arm64 and x86_64 simulator slices.
+    fmt_base = installer.sandbox.root.join('fmt/include/fmt/base.h')
+    if fmt_base.exist?
+      content = fmt_base.read
+      patched = content.gsub(
+        '__apple_build_version__ < 14000029L',
+        '__apple_build_version__ < 99999999999L'
+      )
+      if patched != content
+        fmt_base.chmod(0644)
+        fmt_base.write(patched)
+      end
+    end
+  end
+end
+
+# ── Push extensions ──────────────────────────────────────────────────────────
+#
+# The Notification Service Extension (rich-media download + PushReceived
+# logging) and Notification Content Extension (rich expansion UI) are separate
+# app-extension targets. They do NOT need React Native — only the Connect SDK,
+# whose ConnectNotificationService / ConnectNotificationContentExtension base
+# classes they subclass. Each links the SAME Connect pod as the host app.
+target 'ConnectNSE' do
+  connect_name, connect_requirements = acoustic_connect_pod(__dir__)
+  pod connect_name, *connect_requirements
+end
+
+target 'ConnectNCE' do
+  connect_name, connect_requirements = acoustic_connect_pod(__dir__)
+  pod connect_name, *connect_requirements
+end

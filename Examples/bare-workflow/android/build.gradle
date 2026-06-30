@@ -1,0 +1,27 @@
+buildscript {
+    ext {
+        buildToolsVersion = "36.0.0"
+        // SDK floor — react-native-acoustic-connect requires minSdk 26.
+        // Apps consuming the SDK must match.
+        minSdkVersion = 26
+        compileSdkVersion = 36
+        targetSdkVersion = 36
+        ndkVersion = "27.1.12297006"
+        kotlinVersion = "2.1.20"
+    }
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("com.android.tools.build:gradle")
+        classpath("com.facebook.react:react-native-gradle-plugin")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
+        // FCM: processes app/google-services.json. The app-level plugin is
+        // applied conditionally (only when google-services.json is present),
+        // so this classpath is harmless for the no-Firebase / no-push case.
+        classpath("com.google.gms:google-services:4.4.2")
+    }
+}
+
+apply plugin: "com.facebook.react.rootproject"

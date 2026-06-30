@@ -1,0 +1,62 @@
+# Native source folders (ios/ and android/) ARE committed so that:
+#   • CI / test automation runs from a deterministic native scaffold
+#     (no rescaffold step, no template drift)
+#   • External users cloning the published sample can `npm install` →
+#     `pod install` → run, without scaffolding themselves
+#   • Path-resolution is Node-driven (see android/settings.gradle and
+#     android/app/build.gradle), so the same committed files work in
+#     both workspace and standalone layouts
+#
+# Generated / derived / vendor outputs below are still ignored.
+
+# Node / Metro
+node_modules/
+.metro-health-check*
+*.log
+.bundle/
+vendor/
+
+# iOS — vendored Pods, build outputs, user/IDE state
+ios/Pods/
+ios/build/
+ios/DerivedData/
+ios/*.xcworkspace/xcuserdata/
+ios/*.xcodeproj/xcuserdata/
+ios/*.xcodeproj/project.xcworkspace/xcuserdata/
+ios/.xcode.env.local
+**/*.xcuserstate
+**/*.xcuserdatad/
+
+# Android — gradle caches, build outputs, IDE state
+android/.gradle/
+android/build/
+android/app/build/
+android/.cxx/
+android/app/.cxx/
+android/local.properties
+android/.idea/
+**/.gradle/
+
+# Debug keystore — committed so fresh checkouts (CI / test automation /
+# partners cloning the sample) can build & sign debug APKs out of the box.
+# The repo-root .gitignore excludes *.keystore project-wide, so re-include
+# it here. Debug keystores are not secret; production apps must generate
+# their own (see https://reactnative.dev/docs/signed-apk-android).
+!android/app/debug.keystore
+
+# Misc
+.idea/
+.vscode/
+.DS_Store
+*.hbc
+
+# SDK credentials — never commit (gitignored project-wide too)
+ConnectConfig.json
+
+# FCM — developer's real Firebase config (copied from the committed
+# google-services.json.template). Never commit a real one.
+android/app/google-services.json
+
+# One-off Xcode derived-data from CLI validation builds (Release variant;
+# Debug 'ios/build/' is already ignored above).
+ios/build-release/

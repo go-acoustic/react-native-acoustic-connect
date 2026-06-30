@@ -1,0 +1,49 @@
+// Resolve @react-native/gradle-plugin via Node so this file works
+// identically in two contexts:
+//
+//   1. Workspace dev (Examples/bare-workflow/ inside the SDK monorepo) —
+//      gradle-plugin is hoisted to <sdk-root>/node_modules.
+//   2. Standalone (published to the public repo's `next` branch) —
+//      gradle-plugin lives in this app's own node_modules.
+//
+// Node's `require.resolve` walks up node_modules from cwd and finds the
+// right copy in either layout. No fixed ../.. climbs to maintain.
+//
+// Two `includeBuild(...)` calls below are NOT redundant — Gradle
+// composite builds require both, for different reasons:
+//
+//   • Inside pluginManagement {}: registers the plugin descriptor so
+//     `plugins { id("com.facebook.react.settings") }` on the next line
+//     can RESOLVE the plugin. Without this, the plugins block fails
+//     with "Plugin not found in any of the following sources".
+//   • At top-level (after `include ':app'`): registers
+//     @react-native/gradle-plugin as a composite build MEMBER, so :app
+//     can depend on it at config time (autolinkLibrariesWithApp()).
+//     Without this, RN autolinking can't see the plugin's tasks.
+//
+// This is the standard RN 0.82 template pattern — see
+// react-native/template/android/settings.gradle.kts. Removing either
+// call breaks the build.
+//
+// pluginManagement {} must be the FIRST statement in settings.gradle
+// (no `def` may precede it), so the first resolution lives inside the
+// block. The second Node spawn at the bottom is negligible.
+
+pluginManagement {
+    def pkgPath = ["node", "-p", "require.resolve('@react-native/gradle-plugin/package.json')"]
+        .execute([], settingsDir).text.trim()
+    includeBuild(new File(pkgPath).parent)
+}
+plugins { id("com.facebook.react.settings") }
+extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
+    ex.autolinkLibrariesFromCommand()
+}
+// Gradle project label only — must NOT contain dots (Gradle treats '.' as a
+// project-path separator, which breaks composite builds). It does not need to
+// match the applicationId; the published app id is set in app/build.gradle.
+rootProject.name = 'ConnectBareWorkflowDemo'
+include ':app'
+
+def gradlePluginPkgPath = ["node", "-p", "require.resolve('@react-native/gradle-plugin/package.json')"]
+    .execute([], settingsDir).text.trim()
+includeBuild(new File(gradlePluginPkgPath).parent)

@@ -1,0 +1,62 @@
+# Resolve react_native_pods.rb with node to allow for hoisting
+require Pod::Executable.execute_command('node', ['-p',
+  'require.resolve(
+    "react-native/scripts/react_native_pods.rb",
+    {paths: [process.argv[1]]},
+  )', __dir__]).strip
+
+# Spec sources. The git Specs repo receives new pod versions (e.g.
+# AcousticConnectDebug 2.1.12) before they propagate to the CDN, so list both:
+# the CDN stays primary (fast) for React Native and other deps, and the git
+# mirror supplies versions the CDN hasn't published yet. Declaring any source
+# disables the implicit CDN default, so the CDN must be listed explicitly.
+source 'https://cdn.cocoapods.org/'
+source 'https://github.com/CocoaPods/Specs.git'
+
+platform :ios, min_ios_version_supported
+prepare_react_native_project!
+
+linkage = ENV['USE_FRAMEWORKS']
+if linkage != nil
+  Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
+  use_frameworks! :linkage => linkage.to_sym
+end
+
+target 'AcousticConnectRNExample' do
+  config = use_native_modules!
+  
+  # pod 'AcousticConnectDebug', :path => '/Users/omarhernandez/git/github/iOS-SDK/iOSSrc/Connect/'
+
+  use_react_native!(
+    :path => config[:reactNativePath],
+    # An absolute path to your application root.
+    :app_path => "#{Pod::Config.instance.installation_root}/.."
+  )
+
+  post_install do |installer|
+    # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react_native_pods.rb#L197-L202
+    react_native_post_install(
+      installer,
+      config[:reactNativePath],
+      :mac_catalyst_enabled => false,
+      # :ccache_enabled => true
+    )
+    # Xcode 26+ fmt patch — relaxes the `__apple_build_version__` guard in
+    # `fmt/include/fmt/base.h` so the non-consteval format path is used on
+    # newer Apple clang. Without this, `fmt/src/format.cc` fails to compile
+    # with "call to consteval function is not a constant expression" errors
+    # across both arm64 and x86_64 simulator slices.
+    fmt_base = installer.sandbox.root.join('fmt/include/fmt/base.h')
+    if fmt_base.exist?
+      content = fmt_base.read
+      patched = content.gsub(
+        '__apple_build_version__ < 14000029L',
+        '__apple_build_version__ < 99999999999L'
+      )
+      if patched != content
+        fmt_base.chmod(0644)
+        fmt_base.write(patched)
+      end
+    end
+  end
+end

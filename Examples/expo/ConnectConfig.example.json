@@ -1,0 +1,15 @@
+{
+    "Connect": {
+        "AndroidVersion": "",
+        "AppKey": "YOUR_CONNECT_APP_KEY_HERE",
+        "KillSwitchUrl": "YOUR_KILL_SWITCH_URL_HERE",
+        "PostMessageUrl": "YOUR_POST_MESSAGE_URL_HERE",
+        "PushEnabled": true,
+        "iOSPushMode": "automatic",
+        "iOSAppGroupIdentifier": "YOUR_APP_GROUP_ID_HERE",
+        "iOSDevelopmentTeam": "YOUR_TEAM_ID",
+        "AndroidNotificationIconResName": "ic_notification",
+        "iOSVersion": "",
+        "useRelease": false
+    }
+}

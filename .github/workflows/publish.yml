@@ -1,0 +1,260 @@
+# Copyright (C) 2026 Acoustic, L.P. All rights reserved.
+#
+# NOTICE: This file contains material that is confidential and proprietary to
+# Acoustic, L.P. and/or other developers. No license is granted under any intellectual or
+# industrial property rights of Acoustic, L.P. except as may be provided in an agreement with
+# Acoustic, L.P. Any unauthorized copying or distribution of content from this file is
+# prohibited.
+
+# Secure NPM Publish Workflow using npm Trusted Publishers
+#
+# Purpose: Publishes `react-native-acoustic-connect` to npm when the release
+# pipeline pushes a version tag to go-acoustic/react-native-acoustic-connect.
+#
+# Note for maintainers: this file is the SOURCE for the public repo's
+# `.github/workflows/publish.yml`. The release pipeline copies it there under
+# that name on every production publish (the public repo's workflows are
+# replaced, not synced, so edits made directly in the public repo are
+# overwritten). In this repo the workflow is inert — the repository guard
+# below only matches the public repo.
+#
+# Workflow Flow:
+#   1. The release pipeline builds the public package, pushes it with a
+#      bare-semver version tag (e.g. 19.0.1), and uploads the package
+#      tarball to the GitHub Release for that tag
+#   2. The tag push triggers this workflow
+#   3. This workflow waits for the release + tarball, downloads it, and
+#      publishes to npm using OIDC Trusted Publishers (no tokens needed)
+#   4. The release pipeline polls this workflow for completion and follows
+#      up with a post-publish install verification
+#
+# Prerequisites:
+#   - npm package `react-native-acoustic-connect` must be configured on
+#     npmjs.com with GitHub as a Trusted Publisher:
+#       repository: go-acoustic/react-native-acoustic-connect
+#       workflow:   publish.yml
+#   - GitHub release must contain the tarball as an asset
+#   - npm CLI version 11.5.1 or later (upgraded automatically in this workflow)
+#
+# Security: Uses OpenID Connect (OIDC) for authentication — no npm tokens
+# stored in GitHub.
+#
+# Troubleshooting:
+#   - "Tarball not found": check that the release pipeline uploaded the
+#     tarball to the GitHub Release for this tag
+#   - "Tag does not match package.json": the tag points at the wrong commit
+#   - "npm publish failed": verify the Trusted Publishers configuration on
+#     npmjs.com matches the repository/workflow names above
+
+name: Secure NPM Publish — Public (Trusted Publishers)
+
+on:
+  push:
+    tags:
+      - '*'        # Trigger on any tag pushed by the release pipeline
+      - '!*-beta'  # Defensive: never run on a -beta-suffixed tag
+  workflow_dispatch:  # Allow manual re-run from the GitHub UI
+
+permissions:
+  id-token: write  # Required for npm OIDC/Trusted Publishers
+  contents: read   # Required for actions/checkout
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # Only publish from the public repository — skips everywhere else
+    if: github.repository == 'go-acoustic/react-native-acoustic-connect'
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref }}  # Check out the tagged commit
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Upgrade npm for Trusted Publishers
+        timeout-minutes: 3  # Prevent hanging on network issues
+        run: |
+          echo "Note: Trusted publishing requires npm CLI version 11.5.1 or later."
+          echo "Current npm version: $(npm --version)"
+          npm install -g npm@latest
+          echo "Upgraded npm version: $(npm --version)"
+
+      - name: Verify package metadata
+        run: |
+          echo "::group::Repository Info"
+          echo "Repository: ${{ github.repository }}"
+          echo "Tag: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "::endgroup::"
+
+          echo "::group::Package Info"
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          echo "name: $PACKAGE_NAME"
+          echo "version: $PACKAGE_VERSION"
+          echo "::endgroup::"
+
+          # The release pipeline tags with the bare package.json version. A
+          # mismatch means the tag points at the wrong commit — refuse to publish.
+          if [ "$PACKAGE_VERSION" != "${{ github.ref_name }}" ]; then
+            echo "::error::Tag '${{ github.ref_name }}' does not match package.json version '$PACKAGE_VERSION'"
+            exit 1
+          fi
+
+          if [ "$PACKAGE_NAME" != "react-native-acoustic-connect" ]; then
+            echo "::error::Unexpected package name '$PACKAGE_NAME' — this workflow only publishes react-native-acoustic-connect"
+            exit 1
+          fi
+
+      - name: Wait for release and download tarball
+        id: package
+        timeout-minutes: 10
+        env:
+          # github.token has read access to releases/assets in this repository
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+
+          VERSION="${{ github.ref_name }}"
+          TARBALL="react-native-acoustic-connect-${VERSION}.tgz"
+          API_URL="https://api.github.com/repos/${{ github.repository }}/releases/tags/${VERSION}"
+
+          echo "Release version: $VERSION"
+          echo "Expected tarball: $TARBALL"
+
+          # The release pipeline creates the release and uploads the tarball
+          # AFTER pushing the tag that triggered this run — wait for both.
+          MAX_RETRIES=36
+          RETRY_DELAY=10
+          attempt=1
+
+          while [ $attempt -le $MAX_RETRIES ]; do
+            echo "::group::Attempt ${attempt}/${MAX_RETRIES}"
+
+            HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' \
+              -H "Authorization: token $GH_TOKEN" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "$API_URL")
+
+            if [ "$HTTP_CODE" != "200" ]; then
+              echo "Release not created yet (HTTP $HTTP_CODE), waiting..."
+              echo "::endgroup::"
+              if [ $attempt -eq $MAX_RETRIES ]; then
+                echo "::error::Release ${VERSION} never appeared after ${MAX_RETRIES} attempts"
+                exit 1
+              fi
+              sleep $RETRY_DELAY
+              attempt=$((attempt + 1))
+              continue
+            fi
+
+            RELEASE_INFO=$(curl -s \
+              -H "Authorization: token $GH_TOKEN" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "$API_URL")
+
+            ASSET_API_URL=$(echo "$RELEASE_INFO" | jq -r ".assets // [] | .[] | select(.name==\"$TARBALL\") | .url")
+
+            if [ -z "$ASSET_API_URL" ]; then
+              echo "Tarball not uploaded yet, available assets:"
+              echo "$RELEASE_INFO" | jq -r '(.assets // []) | .[].name'
+              echo "::endgroup::"
+              if [ $attempt -eq $MAX_RETRIES ]; then
+                echo "::error::Tarball $TARBALL not found in release after ${MAX_RETRIES} attempts"
+                exit 1
+              fi
+              sleep $RETRY_DELAY
+              attempt=$((attempt + 1))
+              continue
+            fi
+
+            echo "Downloading $TARBALL via GitHub API..."
+            HTTP_CODE=$(curl -L -w "%{http_code}" -o "$TARBALL" \
+              -H "Authorization: token $GH_TOKEN" \
+              -H "Accept: application/octet-stream" \
+              "$ASSET_API_URL" 2>&1)
+            echo "HTTP response code: $HTTP_CODE"
+
+            if [ -f "$TARBALL" ] && [ -s "$TARBALL" ]; then
+              FILE_SIZE=$(stat -c%s "$TARBALL" 2>/dev/null || stat -f%z "$TARBALL" 2>/dev/null)
+              # Real tarballs are 50KB+; error pages are <1KB
+              if [ "$FILE_SIZE" -gt 1000 ]; then
+                echo "::notice::✅ Downloaded $TARBALL (${FILE_SIZE} bytes) on attempt ${attempt}"
+                echo "::endgroup::"
+                break
+              fi
+              echo "File too small (${FILE_SIZE} bytes), likely an error page:"
+              cat "$TARBALL"
+              rm -f "$TARBALL"
+            fi
+
+            echo "::endgroup::"
+            if [ $attempt -eq $MAX_RETRIES ]; then
+              echo "::error::Failed to download tarball after ${MAX_RETRIES} attempts"
+              exit 1
+            fi
+            sleep $RETRY_DELAY
+            attempt=$((attempt + 1))
+          done
+
+          {
+            echo "tarball=$TARBALL"
+            echo "version=$VERSION"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Verify tarball integrity
+        run: |
+          echo "::group::Tarball Contents"
+          tar -tzf "${{ steps.package.outputs.tarball }}" | head -20
+          echo "::endgroup::"
+
+          echo "::group::Tarball Size"
+          ls -lh "${{ steps.package.outputs.tarball }}"
+          echo "::endgroup::"
+
+      - name: Publish to npm
+        timeout-minutes: 5
+        run: |
+          echo "::notice::Publishing release package with 'latest' tag"
+
+          echo "::group::npm Whoami Check"
+          npm whoami || echo "Not authenticated with npm token (expected for Trusted Publishers)"
+          echo "::endgroup::"
+
+          npm publish "${{ steps.package.outputs.tarball }}" \
+            --access public \
+            --tag latest \
+            --verbose \
+            --loglevel verbose
+        env:
+          # Public repository — provenance attestation enabled (npm ≥ 11.5.1
+          # generates statements linking the package to source + build).
+          NPM_CONFIG_PROVENANCE: true
+          NPM_CONFIG_LOGLEVEL: verbose
+
+      - name: Publish summary
+        if: always()
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## 📦 NPM Publish Summary — Public Release
+
+          - **Package**: \`react-native-acoustic-connect\`
+          - **Tarball**: \`${{ steps.package.outputs.tarball }}\`
+          - **NPM Tag**: \`latest\`
+          - **Tag Version**: \`${{ github.ref_name }}\`
+          - **Commit**: \`${{ github.sha }}\`
+
+          ### Installation
+          \`\`\`bash
+          npm install react-native-acoustic-connect@latest
+          \`\`\`
+
+          ✅ Published using [npm Trusted Publishers](https://docs.npmjs.com/trusted-publishers)
+          EOF

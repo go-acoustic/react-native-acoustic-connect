@@ -1,0 +1,9 @@
+{
+  "version": "v1",
+  "packages": {
+    "react-native-acoustic-connect": {
+      "signature": "ebd3fce0ef9c0c2a1829f69f7d3bf68c",
+      "file": true
+    }
+  }
+}

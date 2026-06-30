@@ -1,5 +1,5 @@
 /********************************************************************************************
-* Copyright (C) 2024 Acoustic, L.P. All rights reserved.
+* Copyright (C) 2025 Acoustic, L.P. All rights reserved.
 *
 * NOTICE: This file contains material that is confidential and proprietary to
 * Acoustic, L.P. and/or other developers. No license is granted under any intellectual or
@@ -14,16 +14,15 @@ const xmlPaserPlugin = require("@prettier/plugin-xml");
 const { exit } = require('process');
 const { isValid } = require('./util');
 
-console.log("Run xmlParser.js");
+console.log("Run xmlparser.js");
 
 const directoryPath = path.join(__dirname,"..","..","..")
-if(!isValid(`${directoryPath}/android`)){
-  console.log("Directory not valid:")
-  console.log(`${directoryPath}/android`)
+const filePath = `${directoryPath}/android/app/src/main/AndroidManifest.xml`;
+
+if(!isValid(filePath)){
+  console.log("File not found, skipping:", filePath)
   exit(0)
 }
-
-const filePath = `${directoryPath}/android/app/src/main/AndroidManifest.xml`;
 const permssions = ['android.permission.INTERNET',
 'android.permission.ACCESS_NETWORK_STATE',
 'android.permission.ACCESS_WIFI_STATE',
@@ -42,10 +41,14 @@ try {
   count = 0
   permssions.forEach(permssion =>{
     if (!result.includes(permssion)){
-      build = build + `<uses-permission android:name="${permssion}"/>\n`
+      build = build + `    <uses-permission android:name="${permssion}"/>\n`
       count++
     }
   })
+
+  if (count > 0) {
+    build = build.replace(/\n$/, "");
+  }
   
   result = result.replace(">" , build)
   
@@ -55,12 +58,10 @@ try {
     tabWidth: 2,
   });
 
-
   if( count > 0){
     fs.writeFileSync(filePath, result);
   }
- 
-
+  console.log("Updated AndroidManifest.xml with permissions:", result);
 } catch (err) {
   console.error(err);
 }

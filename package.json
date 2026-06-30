@@ -1,5 +1,8 @@
 {
-    "author": "Acoustic, L.P., Omar Hernandez, Chang Jie Yang",
+    "author": "Acoustic, L.P., Radoslaw Serek, Aksana Naskalava",
+    "bin": {
+        "acoustic-connect": "cli/index.mjs"
+    },
     "dependencies": {
         "@prettier/plugin-xml": "^2.2.0",
         "fast-xml-parser": "^4.0.8",
@@ -8,9 +11,85 @@
     },
     "description": "React native plugin for Acoustic Connect",
     "devDependencies": {
+        "@expo/config-plugins": "~55.0.10",
+        "@expo/config-types": "^55.0.5",
+        "@jamesacarr/eslint-formatter-github-actions": "^0.2.0",
+        "@release-it/bumper": "^7.0.1",
+        "@release-it/conventional-changelog": "^10.0.0",
+        "@types/jest": "^29.5.12",
+        "@types/react": "^19.0.10",
         "jetifier": "^1.6.3",
-        "react-native": "0.72.6"
+        "nitrogen": "0.35.9",
+        "prettier-plugin-kotlin": "^2.1.0",
+        "react": "19.1.1",
+        "react-native": "0.82.1",
+        "react-native-builder-bob": "^0.37.0",
+        "react-native-nitro-modules": "0.35.9",
+        "release-it": "^19.0.2",
+        "typescript": "5.0.4"
     },
+    "engines": {
+        "node": ">=20.0.0"
+    },
+    "eslintConfig": {
+        "extends": [
+            "@react-native",
+            "prettier"
+        ],
+        "plugins": [
+            "prettier"
+        ],
+        "root": true,
+        "rules": {
+            "prettier/prettier": [
+                "warn",
+                {
+                    "quoteProps": "consistent",
+                    "singleQuote": true,
+                    "tabWidth": 2,
+                    "trailingComma": "es5",
+                    "useTabs": false
+                }
+            ]
+        }
+    },
+    "eslintIgnore": [
+        "node_modules/",
+        "lib/"
+    ],
+    "files": [
+        "src",
+        "react-native.config.js",
+        "lib",
+        "nitrogen",
+        "cpp",
+        "android/build.gradle",
+        "android/gradle.properties",
+        "android/CMakeLists.txt",
+        "android/src",
+        "android/config.gradle",
+        "android/src/main/assets/**",
+        "ios/**/*.h",
+        "ios/**/*.m",
+        "ios/**/*.mm",
+        "ios/**/*.cpp",
+        "ios/**/*.swift",
+        "ios/AcousticConnectRNConfig.json",
+        "app.plugin.js",
+        "plugin/build",
+        "plugin/swift",
+        "plugin/src",
+        "cli",
+        "*.podspec",
+        "README.md",
+        "CHANGELOG.md",
+        "scripts",
+        "Examples/SampleUI/**/*",
+        "!Examples/SampleUI/node_modules/**",
+        "!Examples/SampleUI/temp/**",
+        "!Examples/SampleUI/logs/**",
+        "!Examples/SampleUI/android/.gradle/**"
+    ],
     "homepage": "https://github.com/go-acoustic/react-native-acoustic-connect",
     "keywords": [
         "react-native",
@@ -23,22 +102,121 @@
         "er",
         "enhanced-replay"
     ],
-    "license": "See license in Licenses/License",
-    "main": "index.js",
+    "license": "See license in Licenses/Licenses",
+    "main": "./lib/commonjs/index.js",
+    "module": "./lib/module/index.js",
     "name": "react-native-acoustic-connect",
     "peerDependencies": {
-        "react-native": "*"
+        "@expo/config-plugins": ">=55.0.0",
+        "react": ">=19.1.1 <20.0.0",
+        "react-native": ">=0.82.0 <0.86.0",
+        "react-native-nitro-modules": "0.35.9"
+    },
+    "peerDependenciesMeta": {
+        "@expo/config-plugins": {
+            "optional": true
+        }
+    },
+    "prettier": {
+        "quoteProps": "consistent",
+        "semi": false,
+        "singleQuote": true,
+        "tabWidth": 2,
+        "trailingComma": "es5",
+        "useTabs": false
+    },
+    "publishConfig": {
+        "registry": "https://registry.npmjs.org/"
+    },
+    "react-native": "src/index",
+    "react-native-builder-bob": {
+        "output": "lib",
+        "source": "src",
+        "targets": [
+            "commonjs",
+            "module",
+            [
+                "typescript",
+                {
+                    "project": "tsconfig.json"
+                }
+            ]
+        ]
+    },
+    "release-it": {
+        "git": {
+            "commitMessage": "chore: release ${version}",
+            "requireCleanWorkingDir": false,
+            "tagName": "v${version}"
+        },
+        "github": {
+            "release": true
+        },
+        "hooks": {
+            "after:bump": "bun run build",
+            "before:init": "bun typecheck"
+        },
+        "npm": {
+            "publish": true
+        },
+        "plugins": {
+            "@release-it/bumper": {
+                
+            },
+            "@release-it/conventional-changelog": {
+                "infile": "CHANGELOG.md",
+                "preset": {
+                    "name": "conventionalcommits",
+                    "types": [
+                        {
+                            "section": "\u2728 Features",
+                            "type": "feat"
+                        },
+                        {
+                            "section": "\ud83d\udca8 Performance Improvements",
+                            "type": "perf"
+                        },
+                        {
+                            "section": "\ud83d\udc1b Bug Fixes",
+                            "type": "fix"
+                        },
+                        {
+                            "section": "\ud83d\udee0\ufe0f Dependency Upgrades",
+                            "type": "chore(deps)"
+                        },
+                        {
+                            "section": "\ud83d\udcda Documentation",
+                            "type": "docs"
+                        }
+                    ]
+                }
+            }
+        }
     },
     "repository": {
-        "type": "git",
-        "url": "https://github.com/go-acoustic/react-native-acoustic-connect"
+        "url": "git+https://github.com/go-acoustic/react-native-acoustic-connect.git"
     },
     "scripts": {
         "applyConfiguration": "node scripts/applyConfiguration.js $INIT_CWD",
-        "postinstall": "./scripts/postInstallScripts.sh",
+        "build": "npm run typecheck && bob build",
+        "build:plugin": "tsc -p plugin/tsconfig.json",
+        "codegen": "nitrogen --logLevel=\"debug\" && npm run build && node post-script.js",
+        "postinstall": "node scripts/postinstall.mjs",
+        "prepack": "npm run build:plugin",
+        "rebuild": "npm run codegen && npm run rebuildExample --prefix ./example",
+        "release": "release-it",
         "test": "echo \"Error: no test specified\" && exit 1",
-        "verifyConnectSetup": "node scripts/verifyConnectSetup.js $INIT_CWD"
+        "test:plugin": "npm run build:plugin && node --test plugin/__tests__/",
+        "typecheck": "tsc --noEmit",
+        "verifyConnectSetup": "node cli/index.mjs doctor $INIT_CWD",
+        "yalcPublish": "npm run rebuild && yalc publish"
     },
+    "source": "src/index",
     "summary": "react-native ios android tealeaf connect cxa wxca er enhanced-replay",
-    "version": "16.0.39"
+    "types": "./lib/typescript/src/index.d.ts",
+    "version": "19.0.3",
+    "workspaces": [
+        "example",
+        "Examples/bare-workflow"
+    ]
 }

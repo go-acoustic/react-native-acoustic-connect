@@ -1,0 +1,43 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "jsx": "react-jsx",
+    "lib": ["esnext"],
+    "module": "esnext",
+    "moduleResolution": "node",
+    "noEmit": false,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noImplicitUseStrict": false,
+    "noStrictGenericChecks": false,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "esnext",
+    "verbatimModuleSyntax": true,
+    "allowJs": true,
+    "checkJs": false
+  },
+  "exclude": [
+    "**/node_modules",
+    "**/.eslintrc.js",
+    "**/.prettierrc.js",
+    "**/jest.config.js",
+    "**/babel.config.js",
+    "**/metro.config.js",
+    "**/tsconfig.json",
+    // "lib/TLTRN.js"
+  ],
+  "include": [
+    "src/**/*",
+    "nitrogen/**/*.json", 
+    "lib/**/*.d.ts"
+  ],
+}

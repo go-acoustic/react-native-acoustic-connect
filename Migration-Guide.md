@@ -5,16 +5,16 @@
 Before
 ```
 import {NativeModules, findNodeHandle, Platform} from 'react-native';
-const Connect = NativeModules.RNCxa;
+const Connect = NativeModules.AcousticConnectRN;
 import {TLTRN} from "../node_modules/react-native-acoustic-connect/lib/TLTRN";
 ```
 
 After
 ```
-import { Connect, TLTRN, RNCxa } from 'react-native-acoustic-connect';
+import { Connect, TLTRN, AcousticConnectRN } from 'react-native-acoustic-connect';
 ```
 
-Note that Connect is no longer a pointer to the native module, it is a react component. If you need to access the native module directly use RNCxa.
+Note that Connect is no longer a pointer to the native module, it is a react component. If you need to access the native module directly use AcousticConnectRN.
 
 
 ## 2 - Usage

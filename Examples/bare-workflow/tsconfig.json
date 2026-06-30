@@ -1,0 +1,12 @@
+{
+  "extends": "@react-native/typescript-config/tsconfig.json",
+  "compilerOptions": {
+    "strict": true,
+    "jsx": "react-jsx",
+    "types": [],
+    "paths": {
+      "@shared/*": ["../shared/*", "./shared/*"]
+    }
+  },
+  "include": ["App.tsx", "src/**/*", "../shared/**/*", "./shared/**/*"]
+}

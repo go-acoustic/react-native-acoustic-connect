@@ -1,18 +1,40 @@
+New Features
+
+Mobile push notifications
+
+- End-to-end mobile push: iOS APNs token registration and Android FCM
+- Rich-media notifications via the Notification Service Extension (ConnectNSE) and Notification Content Extension (ConnectNCE), rendering expanded content
+
+Expo support (SDK 55+)
+
+- Bundled Expo Config Plugin: provisions the ConnectNSE + ConnectNCE Xcode targets during `expo prebuild` (idempotent across re-runs, generated from the bundled NotificationViewController.swift template), adds the host-app `aps-environment` entitlement, and propagates `ConnectConfig.json` into the Android build — so APNs and FCM push work in Expo apps
+- EAS Build support for the NSE + NCE extension targets, with a sample `eas.json` in `Examples/expo`
+- Expo SDK 55+ sample app (`Examples/expo`) on expo-router, sharing the push/identity UI with the bare-workflow sample via `Examples/shared`
+
 Bug Fixes
 
-- None.
-
+- Fix invalid AppKey shadowing: consumer's ConnectConfig.json AppKey now overrides the Connect AAR's baked-in default on Android
+- Fix iOS runtime crash "Library not loaded: @rpath/EOCore.framework/EOCore" on newer merged Acoustic Connect SDK variants
+- Fix Connect component breaking host-app touch handling when wrapped NavigationContainer has no ref
+- Fix React 19 compatibility and constrain nitro-modules peer dep
+- Fix ConnectConfig.json template
+- Fix version update script for Android
+- Expo: pass the dev-client URI scheme to `expo start` so the QR / deep link connects when the push NSE/NCE extensions are present
+- bare-workflow: drop the CocoaPods git Specs source from the Podfile so a cold `pod install` no longer syncs the multi-GB Specs repo
 
 Improvements:
 
-- None.
-
+- New explicit `navigationRef` prop on <Connect> for ref passing without relying on children structure
+- Rebuild SDK using nitro-modules 0.35.9
+- Android: resolve react-native version conflicts from transitive Gradle deps
+- iOS: verbose Connect/Tealeaf/EOCore native logging when `useRelease:false`, surfaced in the Xcode console for QA and support
+- CI: Expo iOS + Android sample-build gates
 
 Our environment for this release:
 
-- Xcode 16.1
-- MacOS 15.0.1
-- iOS 13.x to 18.x
+- Xcode 26.2
+- MacOS 26.0.1
+- iOS 15.1 to 26.x
 - Supported architectures:
 	- simulator
 		- arm64
@@ -25,4 +47,3 @@ Known Issues
 
 - After iOS 13, library no longer supports iPad because of Apple changes in iPad OS.
 - Dual sim features are in beta. Example information using multiple carriers.
-

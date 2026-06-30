@@ -1,0 +1,14 @@
+# CI/CD files
+Jenkinsfile
+.github/
+.git/
+.gitattributes
+
+# Development files
+.idea/
+.claude/
+CLAUDE.md
+
+# Build artifacts
+*.tgz
+
