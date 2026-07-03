@@ -11,13 +11,19 @@
     },
     "description": "React native plugin for Acoustic Connect",
     "devDependencies": {
+        "@babel/core": "^7.25.2",
+        "@babel/runtime": "^7.25.0",
         "@expo/config-plugins": "~55.0.10",
         "@expo/config-types": "^55.0.5",
         "@jamesacarr/eslint-formatter-github-actions": "^0.2.0",
+        "@react-native/babel-preset": "0.82.1",
         "@release-it/bumper": "^7.0.1",
         "@release-it/conventional-changelog": "^10.0.0",
+        "@testing-library/react-native": "^13.3.3",
         "@types/jest": "^29.5.12",
         "@types/react": "^19.0.10",
+        "jest": "^29.7.0",
+        "jest-junit": "^16.0.0",
         "jetifier": "^1.6.3",
         "nitrogen": "0.35.9",
         "prettier-plugin-kotlin": "^2.1.0",
@@ -25,6 +31,7 @@
         "react-native": "0.82.1",
         "react-native-builder-bob": "^0.37.0",
         "react-native-nitro-modules": "0.35.9",
+        "react-test-renderer": "19.1.1",
         "release-it": "^19.0.2",
         "typescript": "5.0.4"
     },
@@ -59,6 +66,8 @@
     ],
     "files": [
         "src",
+        "!src/**/__tests__/**",
+        "!src/**/*.test.*",
         "react-native.config.js",
         "lib",
         "nitrogen",
@@ -67,6 +76,7 @@
         "android/gradle.properties",
         "android/CMakeLists.txt",
         "android/src",
+        "!android/src/test/**",
         "android/config.gradle",
         "android/src/main/assets/**",
         "ios/**/*.h",
@@ -74,12 +84,14 @@
         "ios/**/*.mm",
         "ios/**/*.cpp",
         "ios/**/*.swift",
+        "!ios/Tests/**",
         "ios/AcousticConnectRNConfig.json",
         "app.plugin.js",
         "plugin/build",
         "plugin/swift",
         "plugin/src",
         "cli",
+        "ConnectConfig.example.json",
         "*.podspec",
         "README.md",
         "CHANGELOG.md",
@@ -138,7 +150,7 @@
             [
                 "typescript",
                 {
-                    "project": "tsconfig.json"
+                    "project": "tsconfig.build.json"
                 }
             ]
         ]
@@ -205,8 +217,11 @@
         "prepack": "npm run build:plugin",
         "rebuild": "npm run codegen && npm run rebuildExample --prefix ./example",
         "release": "release-it",
-        "test": "echo \"Error: no test specified\" && exit 1",
+        "test": "jest",
+        "test:all": "npm test && npm run test:plugin && npm run test:cli",
+        "test:cli": "node --test cli/__tests__/",
         "test:plugin": "npm run build:plugin && node --test plugin/__tests__/",
+        "test:watch": "jest --watch",
         "typecheck": "tsc --noEmit",
         "verifyConnectSetup": "node cli/index.mjs doctor $INIT_CWD",
         "yalcPublish": "npm run rebuild && yalc publish"
@@ -214,7 +229,7 @@
     "source": "src/index",
     "summary": "react-native ios android tealeaf connect cxa wxca er enhanced-replay",
     "types": "./lib/typescript/src/index.d.ts",
-    "version": "19.0.3",
+    "version": "19.0.9",
     "workspaces": [
         "example",
         "Examples/bare-workflow"

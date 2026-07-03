@@ -2,7 +2,7 @@
     "dependencies": {
         "react": "19.1.1",
         "react-native": "0.82.1",
-        "react-native-acoustic-connect": "19.0.3",
+        "react-native-acoustic-connect": "19.0.9",
         "react-native-nitro-modules": "0.35.9"
     },
     "devDependencies": {
@@ -32,6 +32,7 @@
         "ios": "react-native run-ios",
         "lint": "eslint .",
         "rebuildExample": "npm install && npm run exampleUpdate",
+        "rebuildExampleAndroid": "npm install && npm run androidUpdate",
         "start": "react-native start --reset-cache",
         "test": "jest"
     },

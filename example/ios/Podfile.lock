@@ -2,8 +2,39 @@ PODS:
   - AcousticConnectDebug (2.1.14):
     - AcousticConnectDebug/Core (= 2.1.14)
   - AcousticConnectDebug/Core (2.1.14)
-  - AcousticConnectRN (19.0.3):
-    - AcousticConnectDebug (>= 2.1.12)
+  - AcousticConnectRN (19.0.9):
+    - AcousticConnectDebug (>= 2.1.13)
+    - boost
+    - DoubleConversion
+    - fast_float
+    - fmt
+    - glog
+    - hermes-engine
+    - NitroModules
+    - RCT-Folly
+    - RCT-Folly/Fabric
+    - RCTRequired
+    - RCTTypeSafety
+    - React-callinvoker
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - SocketRocket
+    - Yoga
+  - AcousticConnectRN/UnitTests (19.0.9):
+    - AcousticConnectDebug (>= 2.1.13)
     - boost
     - DoubleConversion
     - fast_float
@@ -2389,6 +2420,7 @@ PODS:
 
 DEPENDENCIES:
   - AcousticConnectRN (from `../..`)
+  - AcousticConnectRN/UnitTests (from `../..`)
   - boost (from `../../node_modules/react-native/third-party-podspecs/boost.podspec`)
   - DoubleConversion (from `../../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`)
   - fast_float (from `../../node_modules/react-native/third-party-podspecs/fast_float.podspec`)
@@ -2627,7 +2659,7 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   AcousticConnectDebug: bbd7d0cb016df3af04d0490b159f2ad5cd03a131
-  AcousticConnectRN: 2c788a3730e9b4766cbaf0f7f8a2f1051fa4e372
+  AcousticConnectRN: 667f1d276c55139d1096152d715c876ea583caa3
   boost: 7e761d76ca2ce687f7cc98e698152abd03a18f90
   DoubleConversion: cb417026b2400c8f53ae97020b2be961b59470cb
   fast_float: b32c788ed9c6a8c584d114d0047beda9664e7cc6
@@ -2704,6 +2736,6 @@ SPEC CHECKSUMS:
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Yoga: 689c8e04277f3ad631e60fe2a08e41d411daf8eb
 
-PODFILE CHECKSUM: 74b991fcb87ae114d45172a1737b270f30e56aa0
+PODFILE CHECKSUM: 7e93a8a002b709997b1a901664537b2e42451226
 
 COCOAPODS: 1.16.2

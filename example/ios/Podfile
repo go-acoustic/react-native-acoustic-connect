@@ -24,8 +24,16 @@ end
 
 target 'AcousticConnectRNExample' do
   config = use_native_modules!
-  
+
   # pod 'AcousticConnectDebug', :path => '/Users/omarhernandez/git/github/iOS-SDK/iOSSrc/Connect/'
+
+  # Native unit tests. Autolinking already declares
+  # AcousticConnectRN from this exact :path (see Podfile.lock EXTERNAL
+  # SOURCES); repeating it here with :testspecs merges with that declaration
+  # and adds the AcousticConnectRN-Unit-UnitTests target. Run with:
+  #   xcodebuild test -workspace AcousticConnectRNExample.xcworkspace \
+  #     -scheme AcousticConnectRN -destination 'platform=iOS Simulator,name=<sim>'
+  pod 'AcousticConnectRN', :path => '../..', :testspecs => ['UnitTests']
 
   use_react_native!(
     :path => config[:reactNativePath],

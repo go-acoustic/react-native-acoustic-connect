@@ -7,7 +7,7 @@
 # app target and the push extensions (ConnectNSE / ConnectNCE) all link the SAME
 # SDK build:
 #   - useRelease => 'AcousticConnect', otherwise 'AcousticConnectDebug'
-#   - floor '>= 2.1.12' (the push permission API floor)
+#   - floor '>= 2.1.13' (push permission API + automatic-mode fix floor)
 #   - optional exact pin via Connect.iOSVersion
 #
 # Usage from a Podfile (resolve the file the same way the RN template resolves
@@ -42,7 +42,7 @@ def acoustic_connect_pod(podfile_dir, config_path: nil)
   use_release = connect_config['useRelease']
   ios_version = connect_config['iOSVersion'].to_s
   name = use_release ? 'AcousticConnect' : 'AcousticConnectDebug'
-  floor = '>= 2.1.12'
+  floor = '>= 2.1.13'
   requirements = ios_version.empty? ? [floor] : [floor, ios_version]
   [name, requirements]
 end

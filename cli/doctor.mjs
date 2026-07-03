@@ -4,8 +4,9 @@
 // Connect integration that otherwise fail late and confusingly at build time:
 // the App Group format, a Java-safe Android package, and the
 // google-services.json package match. It also scaffolds the gitignored
-// ConnectConfig.json from the committed example so a fresh clone has something
-// to edit.
+// ConnectConfig.json — from a project-local ConnectConfig.example.json if
+// present, else from the copy bundled at the package root — so a fresh
+// project has something to edit.
 //
 // Auto-detects the project shape:
 //   - Expo  : a root app.json with an `expo` block (identifiers live there;
@@ -20,6 +21,7 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
+import {fileURLToPath} from 'node:url'
 
 import {
   Reporter,
@@ -31,6 +33,10 @@ import {
   readText,
   section,
 } from './lib.mjs'
+
+// Package root (one level up from cli/) — where the bundled
+// ConnectConfig.example.json ships for real (published) consumers.
+const sdkRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 
 // App Group format per Apple + the Config Plugin's own validator
 // (plugin/src/withConnectNSE.ts: APP_GROUP_PATTERN).
@@ -101,10 +107,22 @@ function checkNode(reporter) {
     )
 }
 
-// Scaffold the per-developer ConnectConfig.json from the committed example.
-function ensureConnectConfig(reporter, dir) {
+// Scaffold the per-developer ConnectConfig.json from an example. Prefers a
+// project-local ConnectConfig.example.json (e.g. this repo's own
+// Examples/bare-workflow and Examples/expo, which commit a customized one) and
+// falls back to the copy bundled with the package — the project-local file
+// generally isn't there for a real (published) consumer.
+//
+// `bundledExample` is overridable purely so cli/__tests__/doctor.test.mjs can
+// exercise the "both missing" branch without touching the real package file.
+export function ensureConnectConfig(
+  reporter,
+  dir,
+  {bundledExample = path.join(sdkRoot, 'ConnectConfig.example.json')} = {},
+) {
   const dest = path.join(dir, 'ConnectConfig.json')
-  const src = path.join(dir, 'ConnectConfig.example.json')
+  const localExample = path.join(dir, 'ConnectConfig.example.json')
+  const src = fileExists(localExample) ? localExample : bundledExample
   const result = copyIfMissing(src, dest)
   if (result === 'created')
     reporter.warn(

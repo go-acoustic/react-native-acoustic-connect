@@ -81,6 +81,9 @@ android/app/libs
 lib/
 tsconfig.tsbuildinfo
 
+# unit-test reports (jest-junit XML + coverage) — consumed by CI publishing
+reports/
+
 # yalc
 .yalc/
 

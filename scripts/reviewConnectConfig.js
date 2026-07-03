@@ -12,8 +12,13 @@
  * Used review ConnectConfig.json is present ot will need to add one.
  */
 const fs = require('fs');
+const path = require('path');
 const filePathBaseConnectConfig = "../../ConnectConfig.json"
-const filePathTemplateConnectConfig = "scripts/ConnectConfig.json"
+// Single source of truth for the template — same file cli/doctor.mjs falls
+// back to for bare/Expo consumers. Do not reintroduce a separate copy here.
+// __dirname-relative (not CWD-relative) so this resolves correctly regardless
+// of the working directory the caller runs this script from.
+const filePathTemplateConnectConfig = path.resolve(__dirname, '..', 'ConnectConfig.example.json')
 
 console.log("Run reviewConnectConfig.js");
 

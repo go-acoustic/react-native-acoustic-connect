@@ -48,13 +48,17 @@ iOSVersion = connectConfig["Connect"]["iOSVersion"]
 # 2.1.12 floor: `ConnectSDK.shared.push.requestAuthorization()` and
 # `getCurrentAuthorization()` land in 2.1.12. The push permission
 # bridge methods call them directly, so an older pod would fail to compile.
-sdkFloor = '>= 2.1.12'
+# 2.1.13 floor: carries a vital fix for automatic push mode (the
+# `ConnectDelegateProxy`-swizzled `UNUserNotificationCenter` delegate path
+# the bridge relies on in `pushMode: 'automatic'`). 2.1.12 and older mis-wire
+# that path, so the floor is raised to guarantee the fix is present.
+sdkFloor = '>= 2.1.13'
 dependencyRequirements = iOSVersion.to_s.empty? ? [sdkFloor] : [sdkFloor, iOSVersion]
 
 # Normalize Connect.PushEnabled to a STRICT boolean before writing the native
 # config bundle. A nil/absent value otherwise serializes as JSON `null`, and the
 # iOS SDK then initializes push-off (ConnectSDK.shared.push == nil) — silently
-# breaking push on the very first build (CA-144135 §7). Coercing here guarantees
+# breaking push on the very first build. Coercing here guarantees
 # the bundle never ships `null`; the native lenient parser defends the runtime
 # path, but this prevents shipping a non-boolean value in the first place.
 #
@@ -115,11 +119,44 @@ Pod::Spec.new do |s|
     # Implementation (C++ objects)
     "cpp/**/*.{hpp,cpp}",
   ]
+  # Unit tests live in ios/Tests and belong to the UnitTests test_spec below,
+  # not to the library target (source_files globs ios/**/*.swift).
+  s.exclude_files = "ios/Tests/**"
 
   s.pod_target_xcconfig = {
     # C++ compiler flags, mainly for folly.
-    "GCC_PREPROCESSOR_DEFINITIONS" => "$(inherited) FOLLY_NO_CONFIG FOLLY_CFG_NO_COROUTINES"
+    "GCC_PREPROCESSOR_DEFINITIONS" => "$(inherited) FOLLY_NO_CONFIG FOLLY_CFG_NO_COROUTINES",
+    # @testable import (UnitTests test_spec) needs testability in Debug.
+    "ENABLE_TESTABILITY[config=Debug]" => "YES"
   }
+
+  # Native unit tests. Run through a consumer app's Pods project:
+  #   Podfile: pod 'AcousticConnectRN', :path => '../..', :testspecs => ['UnitTests']
+  #   xcodebuild test -workspace <app>.xcworkspace -scheme AcousticConnectRN \
+  #     -destination 'platform=iOS Simulator,name=<booted sim>'
+  # The tests use Swift Testing. They do NOT `@testable import` the pod
+  # module — see the source_files comment below for why that's impossible.
+  s.test_spec 'UnitTests' do |ts|
+    # The sources under test are compiled directly into the test bundle
+    # instead of `@testable import`ing the pod module: nitrogen's generated
+    # Swift compatibility header emits C++ thunks referencing nitro C++ types
+    # (margelo::nitro::ArrayBufferHolder) without including their headers, so
+    # the AcousticConnectRN clang module cannot be built by any Swift client —
+    # including a test target. Compiling the files here is safe: the linker
+    # pulls static-archive members lazily, so the parent lib's copies of
+    # these objects are never loaded and no duplicate symbols arise.
+    ts.source_files = [
+      'ios/Tests/**/*.swift',
+      'ios/ConnectRNParsing.swift',
+      'nitrogen/generated/ios/swift/Variant_Bool_String_Double.swift',
+    ]
+    # ios/ConnectRNParsing.swift does `import Connect`. CocoaPods test_specs
+    # inherit the parent spec's dependencies implicitly, so this line is
+    # observably redundant today — declared explicitly anyway so the test
+    # bundle's dependency on the Connect SDK doesn't rely on that inheritance
+    # behavior remaining unchanged (e.g. a future migration off CocoaPods).
+    ts.dependency dependencyName, *dependencyRequirements
+  end
 
   s.resource_bundle = {
     'AcousticConnectRNConfig' => ['ios/AcousticConnectRNConfig.json'],

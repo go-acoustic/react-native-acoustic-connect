@@ -84,6 +84,81 @@ Field summary (see [API reference](#api-reference) for full semantics):
 | `iOSAppGroupIdentifier` | `null` | iOS App Group shared with the Notification Service / Notification Content extension. |
 | `AndroidNotificationIconResName` | `null` | Drawable resource name (no extension) for the Android notification small icon. |
 
+### What `npm install` / `pod install` do for you
+
+Both commands run bootstrap steps against **your** project, not just the
+package's own build:
+
+- `npm install` triggers a postinstall step that (idempotently, best-effort):
+  - scaffolds a starter `ConnectConfig.json` at your project root if one
+    isn't already there,
+  - adds the Android permissions Connect needs
+    (`INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`,
+    `ACCESS_FINE_LOCATION`) to `android/app/src/main/AndroidManifest.xml`,
+  - wires `android/app/build.gradle` to apply the SDK's `config.gradle`.
+- `pod install` merges your `ConnectConfig.json` into the iOS pod's
+  generated config bundle at install time (see the podspec).
+
+None of this touches files outside your project's `android/`/`ios/`
+directories, and re-running either command is safe. After install, run
+`npx acoustic-connect doctor` to validate the result — see
+[Setup CLI](#setup-cli-acoustic-connect) below.
+
+## Setup CLI (`acoustic-connect`)
+
+The package ships a small CLI, installed as `acoustic-connect` (invoke it with
+`npx acoustic-connect <command>`), that validates and scaffolds the native
+side of an integration. Both commands auto-detect bare RN vs. Expo and are
+idempotent — safe to re-run, and they never overwrite a file that's already
+there.
+
+### `npx acoustic-connect doctor [dir] [--require-push]`
+
+Checks the things that otherwise fail late and confusingly at build time:
+
+- Node version.
+- `ConnectConfig.json` values — `AppKey`, `PostMessageUrl` / `KillSwitchUrl`
+  (must be real `https` URLs, not the placeholder host), `iOSAppGroupIdentifier`
+  format, `iOSDevelopmentTeam` format.
+- Android identifiers — the package/namespace is a Java-safe name, and it has
+  a matching client in `google-services.json` (Expo also checks for a stale
+  `android/` from an incremental `expo prebuild` after an `android.package`
+  change).
+- iOS entitlements — bare projects need `aps-environment` + an App Group
+  entitlement (from `setup-ios-push`, below, or hand-authored).
+- (macOS only) whether a local Apple Development signing identity is
+  installed, when push is on.
+
+The push-related checks above are **hard failures** only when
+`Connect.PushEnabled` is `true` (or `--require-push` is passed) — a non-push
+integration only needs `AppKey`. `doctor` exits non-zero on any failure, so
+it's usable as a CI gate (`npx acoustic-connect doctor --require-push`).
+
+`dir` defaults to the current directory. If `ConnectConfig.json` is missing,
+`doctor` scaffolds it first (from a project-local `ConnectConfig.example.json`
+if you have one, else from the copy bundled with the package) before running
+the checks above — so it's also a fine first command to run in a fresh
+project.
+
+### `npx acoustic-connect setup-ios-push [dir]`
+
+Bare-workflow only — the Expo Config Plugin does the equivalent automatically
+on `expo prebuild`. Scaffolds the two iOS push extensions:
+
+- `ConnectNSE` (Notification Service Extension — rich-media attachments,
+  delivery tracking)
+- `ConnectNCE` (Notification Content Extension — expanded rich-media UI)
+
+It writes each extension's Swift source, `Info.plist`, and entitlements from
+the SDK's templates (substituting your App Group), adds the App Group +
+`aps-environment` entitlement to the host app if it doesn't have one yet, and
+wires both targets into your `.xcodeproj` via a bundled Ruby script — which
+needs `ruby` and the `xcodeproj` gem (`gem install xcodeproj`; ships with
+CocoaPods, so most Mac dev setups already have it).
+
+Requires macOS and `Connect.iOSAppGroupIdentifier` already set in
+`ConnectConfig.json` — run `doctor` first if it's missing.
+
 ## Using with Expo SDK 55+
 
 Expo SDK 55 and newer is supported via the bundled Expo Config Plugin.
@@ -409,11 +484,36 @@ releases. Match the version rather than bypass it.
 
 ### iOS — push session reaches the collector but no notifications arrive (no APNs token)
 
-A CLI build (`expo run:ios` / `react-native run-ios` / `xcodebuild`) doesn't
-auto-pick a signing team the way the Xcode GUI does. With no team, it signs
-ad-hoc and **drops the `aps-environment` entitlement**, so iOS issues no APNs
-token — the app still launches and analytics reach the collector, but no
-`pushRegistration` (with a `mobileToken`) is ever sent. Fix:
+**Fingerprint:** analytics and `pushRegistration` still reach the collector
+normally, but `mobileToken` stays `null` forever — and, notably, **no
+`didFailToRegisterForRemoteNotificationsWithError` (or any push-related
+failure) shows up in logs either.** It just silently never happens. That
+absence of any error is what makes this look like a missing/broken app-side
+callback or an SDK bug at first glance; it's almost always a signing
+artifact instead. Run `npx acoustic-connect doctor` first — it detects this
+exact condition (missing/invalid `iOSDevelopmentTeam`, no Development
+certificate) up front, before you go digging through portal config.
+
+Cause: a CLI build (`expo run:ios` / `react-native run-ios` / `xcodebuild`)
+doesn't auto-pick a signing team the way the Xcode GUI does. With no team, it
+signs ad-hoc and **drops the `aps-environment` entitlement**, so iOS issues no
+APNs token — the app still launches and analytics reach the collector, but no
+`pushRegistration` with a `mobileToken` is ever sent.
+
+**Setting `Connect.iOSDevelopmentTeam` in `ConnectConfig.json` by itself does
+nothing.** It's just a source value — it has no effect on the build until
+`expo prebuild` / `npx acoustic-connect setup-ios-push` actually stamps
+`DEVELOPMENT_TEAM` onto the host **and** the `ConnectNSE` **and** `ConnectNCE`
+targets in the generated `.pbxproj`. Re-run that step any time
+`iOSDevelopmentTeam` changes, and after every fresh clone — a teammate's
+machine may already have the stamp baked in from a prior run; yours doesn't
+until you run it too. This is the classic "works for me, not for them" trap:
+every portal-side check (App ID push capability, provisioning profile,
+entitlements file contents, App Group registration, `.p8` key upload) can
+look perfect and still not reflect what's actually embedded in the binary
+that got installed on the device.
+
+Fix:
 
 1. Set `Connect.iOSDevelopmentTeam` (10-char Apple Team ID) in
    `ConnectConfig.json` (or pass the `iosDevelopmentTeam` plugin prop). Re-run
@@ -423,8 +523,22 @@ token — the app still launches and analytics reach the collector, but no
    ID added in Xcode → Settings → Accounts, so a Development certificate +
    profiles are provisioned.
 
-`npx acoustic-connect doctor` fails with this exact remedy when push is on and
-the team is missing (or when no Development certificate is in your keychain).
+**Verify the fix actually landed** — rerunning the steps above isn't proof by
+itself; confirm the build artifacts directly:
+
+```bash
+# 1. DEVELOPMENT_TEAM must be stamped on the host AND both push extensions
+grep DEVELOPMENT_TEAM ios/*.xcodeproj/project.pbxproj
+
+# 2. The *installed* binary must carry the entitlement — check the actual
+#    .app, not just the source .entitlements file in your repo
+codesign -d --entitlements :- --xml /path/to/YourApp.app
+# must show aps-environment in the output
+```
+
+If `DEVELOPMENT_TEAM` is missing for any of the three targets, or `codesign`
+doesn't show `aps-environment`, the stamp didn't take (or a stale build was
+reused) — re-run `setup-ios-push` / `prebuild` and do a clean rebuild.
 
 ### iOS — Expo Android build fails: `No matching client found for package name …`
 
