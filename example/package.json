@@ -2,7 +2,7 @@
     "dependencies": {
         "react": "19.1.1",
         "react-native": "0.82.1",
-        "react-native-acoustic-connect": "19.0.9",
+        "react-native-acoustic-connect": "19.0.11",
         "react-native-nitro-modules": "0.35.9"
     },
     "devDependencies": {

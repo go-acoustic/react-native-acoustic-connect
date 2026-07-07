@@ -229,7 +229,7 @@
     "source": "src/index",
     "summary": "react-native ios android tealeaf connect cxa wxca er enhanced-replay",
     "types": "./lib/typescript/src/index.d.ts",
-    "version": "19.0.9",
+    "version": "19.0.11",
     "workspaces": [
         "example",
         "Examples/bare-workflow"

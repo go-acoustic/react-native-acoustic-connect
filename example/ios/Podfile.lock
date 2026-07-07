@@ -2,7 +2,7 @@ PODS:
   - AcousticConnectDebug (2.1.14):
     - AcousticConnectDebug/Core (= 2.1.14)
   - AcousticConnectDebug/Core (2.1.14)
-  - AcousticConnectRN (19.0.9):
+  - AcousticConnectRN (19.0.11):
     - AcousticConnectDebug (>= 2.1.13)
     - boost
     - DoubleConversion
@@ -33,7 +33,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - AcousticConnectRN/UnitTests (19.0.9):
+  - AcousticConnectRN/UnitTests (19.0.11):
     - AcousticConnectDebug (>= 2.1.13)
     - boost
     - DoubleConversion
@@ -2659,7 +2659,7 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   AcousticConnectDebug: bbd7d0cb016df3af04d0490b159f2ad5cd03a131
-  AcousticConnectRN: 667f1d276c55139d1096152d715c876ea583caa3
+  AcousticConnectRN: d72084e75321b909b5057368f39d2b4dde0d0b6e
   boost: 7e761d76ca2ce687f7cc98e698152abd03a18f90
   DoubleConversion: cb417026b2400c8f53ae97020b2be961b59470cb
   fast_float: b32c788ed9c6a8c584d114d0047beda9664e7cc6
