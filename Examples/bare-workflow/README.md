@@ -136,6 +136,36 @@ is committed, so a fresh checkout builds and signs without extra setup. The
 > the sample's React Native version and the Android build resolves the wrong
 > one.
 
+### Every dependency is pinned to an exact version — do not reintroduce ranges
+
+`package.json` carries no `^` or `~` specs. CI installs this sample **fresh and
+unlocked** (`npm install --no-workspaces`, see the `prepareSampleHost` step in
+the repo's `Jenkinsfile`) precisely so the sample gates exercise what a partner
+gets from a clean clone. With a range, that means the newest matching release on
+the day the build runs — so an upstream publish can turn the gates red, and break
+the published sample for partners, with no commit behind it.
+
+That is not hypothetical. `react-native-screens` `4.26.0` raised its own
+`peerDependencies` to `react-native >=0.84.0` while this sample is on 0.82.1, and
+the old `^4.4.0` spec picked it up the day it shipped. Both gates failed at
+codegen:
+
+```
+Error: The first argument of method setToolbarMenuElementOptions must be of type React.ElementRef<>
+FAILURE: Execution failed for task ':react-native-screens:generateCodegenSchemaFromJavaScript'
+```
+
+`4.25.2` is the last release whose peer range still allows React Native 0.82.
+
+**Bumping a dependency here is deliberate work, not a range widening:** change the
+exact version, run the gate commands (`npm install --no-workspaces` in a clean
+copy, then `./gradlew assembleDebug` and the iOS build), and only then commit.
+Anything tied to the React Native version — `react-native-screens`,
+`react-navigation`, `@babel/*`, `@react-native/*` — moves together with it.
+
+Note this pins **direct** dependencies only; transitive versions still resolve
+fresh. Committing a `package-lock.json` for this sample would close that gap.
+
 ## Configuring SDK Credentials
 
 The demo reads credentials from `ConnectConfig.json` next to this README.
