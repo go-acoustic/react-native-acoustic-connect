@@ -2,14 +2,17 @@ import React from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { DemoCard } from '../components/DemoCard'
 import { LogoHeader } from '../components/LogoHeader'
+import { ReplayModalCard } from '../components/ReplayModalCard'
 import { Colors } from '../theme/colors'
 
 /**
- * Behaviour tab — placeholder kept intentionally empty so the
- * scaffold is in place for the next pass. Slated to host the analytics-side
- * SDK references (`logCustomEvent`, `logSignal`, `logClickEvent`, screen
- * view tracking, exception reporting). Adding new cards here is the
- * canonical way to demo the rest of the SDK's surface.
+ * Behaviour tab — hosts the analytics-side SDK references. The modal cards
+ * cover session-replay capture of React Native's core `<Modal>`, which
+ * presents outside the navigator hierarchy and so exercises a distinct
+ * layout-capture path from the tab screens. Still slated to grow
+ * `logCustomEvent`, `logSignal`, `logClickEvent`, screen view tracking, and
+ * exception reporting; adding new cards here is the canonical way to demo
+ * the rest of the SDK's surface.
  */
 export function BehaviourScreen() {
   return (
@@ -19,13 +22,15 @@ export function BehaviourScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <LogoHeader title="Behaviour Demo" />
+      <ReplayModalCard />
+      <ReplayModalCard transparent />
       <DemoCard title="Coming Soon">
         <View style={styles.placeholderBody}>
           <Text style={styles.headline}>
             Analytics surfaces will land here.
           </Text>
           <Text style={styles.body}>
-            This tab is intentionally empty for now. Future work will add
+            The modal cards above are the first of these. Future work will add
             demo cards for custom events, signals, click and text-change
             tracking, screen-view logging, and unhandled-exception reporting —
             the analytics half of the SDK that lives alongside the push half.
