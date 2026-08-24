@@ -470,7 +470,32 @@ import AcousticConnectRN from 'react-native-acoustic-connect-beta'
 </DemoCard>
 ```
 
-This is the recommended pattern for the **Behaviour** tab — intentionally
-empty for now so the next pass can populate it with demos for
-`logSignal`, `logClickEvent`, `logScreenViewContextLoad`,
+This is the recommended pattern for the **Behaviour** tab, which so far
+holds the session-replay modal cards and the signal card; the next pass can
+populate it with demos for `logClickEvent`, `logScreenViewContextLoad`,
 `logExceptionEvent`, and friends.
+
+### Signal card (`logSignal`)
+
+The Behaviour tab's **Log Signal** card sends two payloads so you can compare
+them in the posted message: a nested one (an object plus an array of objects)
+and a flat scalar-only one. `logSignal` accepts arbitrary JSON — nesting is
+carried through to the collector unchanged.
+
+Calling it needs no type import; the card annotates its shared helper with
+`SignalValues`, exported from the SDK package root, which is the pattern to copy
+when you want to name a payload rather than inline it.
+
+To inspect what actually goes over the wire, point `PostMessageUrl` in
+`ConnectConfig.json` at a local HTTP sink and read the `signal` block of the
+posted message. Two things to know if you do:
+
+- Posted bodies are **gzipped**.
+- The SDK derives the kill-switch URL from the post host and expects the body
+  `1`; any other response reads as a kill-switch trip and posting stops
+  silently.
+
+One platform difference is worth knowing when reading those payloads: Android's
+signal serializer drops a **top-level** numeric value, while iOS carries it.
+Numbers nested inside an object or array behave identically on both. The card's
+nested payload puts its numbers one level down for that reason.

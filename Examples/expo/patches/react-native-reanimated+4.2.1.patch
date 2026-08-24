@@ -1,0 +1,33 @@
+diff --git a/node_modules/react-native-reanimated/android/CMakeLists.txt b/node_modules/react-native-reanimated/android/CMakeLists.txt
+index d4731e6..6837165 100644
+--- a/node_modules/react-native-reanimated/android/CMakeLists.txt
++++ b/node_modules/react-native-reanimated/android/CMakeLists.txt
+@@ -80,14 +80,14 @@ else()
+   set(BUILD_TYPE "release")
+ endif()
+ 
+-add_library(worklets SHARED IMPORTED)
+-
+-set_target_properties(
+-  worklets
+-  PROPERTIES
+-    IMPORTED_LOCATION
+-    "${REACT_NATIVE_WORKLETS_DIR}/android/build/intermediates/cmake/${BUILD_TYPE}/obj/${ANDROID_ABI}/libworklets.so"
+-)
++# Same AGP >= 8 layout change described in expo-modules-core's cmake/main.cmake:
++# build/intermediates/cmake/<buildType>/obj/<abi>/ is no longer populated, so
++# link the prefab package AGP generates for us instead of a hand-built path.
++# Link the imported target directly rather than copying its IMPORTED_LOCATION
++# onto a local target: prefab exports may carry per-configuration locations
++# (IMPORTED_LOCATION_<CONFIG>), which a plain IMPORTED_LOCATION read would miss.
++# Letting CMake resolve the target keeps every configuration correct.
++find_package(react-native-worklets REQUIRED CONFIG)
+ 
+ set_target_properties(reanimated PROPERTIES LINKER_LANGUAGE CXX)
+ # remove dead code sections
+@@ -108,4 +108,4 @@ target_link_libraries(
+   ReactAndroid::jsi
+   fbjni::fbjni
+   android
+-  worklets)
++  react-native-worklets::worklets)

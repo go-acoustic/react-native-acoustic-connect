@@ -59,23 +59,27 @@ export function IdentityScreen() {
 
       <DemoCard title="Log Identity">
         <DemoTextField
+          testID="et_identifier_name"
           label="Identifier Name"
           placeholder="Email Address"
           value={identifierName}
           onChangeText={setIdentifierName}
         />
         <DemoTextField
+          testID="et_identifier_value"
           label="Identifier Value"
           placeholder="user@example.com"
           value={identifierValue}
           onChangeText={setIdentifierValue}
         />
         <PrimaryButton
+          testID="btn_send_identity_signal"
           title="Log Logged In With Email"
           onPress={onLogIn}
           disabled={!canLog}
         />
         <PrimaryButton
+          testID="btn_send_account_registered_signal"
           title="Log Account Registered With Email"
           onPress={onRegister}
           disabled={!canLog}

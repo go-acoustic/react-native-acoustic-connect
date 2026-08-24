@@ -1,0 +1,40 @@
+diff --git a/node_modules/expo-modules-core/android/cmake/main.cmake b/node_modules/expo-modules-core/android/cmake/main.cmake
+index c79b8c6..59b465a 100644
+--- a/node_modules/expo-modules-core/android/cmake/main.cmake
++++ b/node_modules/expo-modules-core/android/cmake/main.cmake
+@@ -69,24 +69,20 @@ target_link_libraries(
+ )
+ 
+ if (REACT_NATIVE_WORKLETS_DIR)
+-  add_library(worklets SHARED IMPORTED)
+-
+-  if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
+-    set(BUILD_TYPE "debug")
+-  else ()
+-    set(BUILD_TYPE "release")
+-  endif ()
+-
+-  set_target_properties(
+-    worklets
+-    PROPERTIES
+-    IMPORTED_LOCATION
+-    "${REACT_NATIVE_WORKLETS_DIR}/android/build/intermediates/cmake/${BUILD_TYPE}/obj/${ANDROID_ABI}/libworklets.so"
+-  )
++  # Resolve worklets through its prefab package rather than a hand-built path.
++  # AGP >= 8 emits CMake objects under
++  #   build/intermediates/cxx/<BuildType>/<hash>/obj/<abi>/
++  # so the legacy build/intermediates/cmake/<buildType>/obj/<abi>/ directory is
++  # never populated and ninja fails the link with
++  #   "libworklets.so ... missing and no known rule to make it".
++  # AGP already writes react-native-workletsConfig.cmake -- carrying the correct
++  # IMPORTED_LOCATION -- into this module's CMAKE_FIND_ROOT_PATH, and the hash in
++  # that path makes a hardcoded location unrepresentable anyway.
++  find_package(react-native-worklets REQUIRED CONFIG)
+ 
+   target_link_libraries(
+     expo-modules-core
+     PRIVATE
+-    worklets
++    react-native-worklets::worklets
+   )
+ endif ()

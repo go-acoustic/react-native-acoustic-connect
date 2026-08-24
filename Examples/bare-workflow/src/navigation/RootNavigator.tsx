@@ -75,17 +75,17 @@ export function RootNavigator() {
           <Tabs.Screen
             name="Push"
             component={PushScreen}
-            options={{ title: 'Push' }}
+            options={{ title: 'Push', tabBarButtonTestID: 'tab_notification' }}
           />
           <Tabs.Screen
             name="Identity"
             component={IdentityScreen}
-            options={{ title: 'Identity' }}
+            options={{ title: 'Identity', tabBarButtonTestID: 'tab_identity' }}
           />
           <Tabs.Screen
             name="Behaviour"
             component={BehaviourScreen}
-            options={{ title: 'Behaviour' }}
+            options={{ title: 'Behaviour', tabBarButtonTestID: 'tab_behaviour' }}
           />
         </Tabs.Navigator>
       </NavigationContainer>
