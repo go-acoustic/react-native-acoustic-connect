@@ -61,7 +61,7 @@
                     "ScreenShot": false
                 },
                 "GlobalScreenSettings": {
-                    "CaptureLayoutDelay": 1,
+                    "CaptureLayoutDelay": 500,
                     "CaptureLayoutOn": 2,
                     "CaptureScreenVisits": false,
                     "CaptureScreenshotOn": 2,
@@ -146,7 +146,7 @@
                     "ScreenShot": false
                 },
                 "GlobalScreenSettings": {
-                    "CaptureLayoutDelay": 1,
+                    "CaptureLayoutDelay": 500,
                     "CaptureLayoutOn": 2,
                     "CaptureScreenVisits": false,
                     "CaptureScreenshotOn": 2,
