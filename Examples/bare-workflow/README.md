@@ -185,6 +185,65 @@ To change credentials: edit `ConnectConfig.json`, re-run
 `bundle exec pod install --project-directory=ios` for iOS, then
 relaunch.
 
+## Masking and the layout config
+
+Masking lives in the `layoutConfigIos` / `layoutConfigAndroid` blocks of
+`ConnectConfig.json`, under `AutoLayout.<screen>.Masking`. Two of the four list
+keys are frequently misread, so it is worth being precise about which of them
+*select* an element and which *redact* one.
+
+| Key | Matched against | Effect |
+| --- | --- | --- |
+| `MaskValueList` | the element's **value** | the value is redacted |
+| `MaskIdList` | the element's **id** | the value is redacted |
+| `MaskAccessibilityIdList` | the element's **accessibility id** | the value is redacted |
+| `MaskAccessibilityLabelList` | the element's **accessibility label** | the value is redacted |
+
+All four are lists of regular expressions, and all four redact the same thing:
+the element's **value**. The last two differ only in *what they match on* — they
+are selectors for "which elements are sensitive", useful when the value itself
+has no reliable pattern but the element is identifiable by its accessibility
+annotation. Putting value patterns in `MaskAccessibilityLabelList` matches
+nothing, because it is compared against the label, never the value.
+
+### The accessibility object is not masked
+
+The captured `accessibility` object — `id`, `label`, and `hint` — is serialised
+verbatim. No mask list redacts it, including the two accessibility ones. If an
+element's value is masked, its accessibility label can still carry the same text.
+
+This matters more in React Native than in native code, because React Native
+derives `accessibilityLabel` from a `<Text>` node's own content when no explicit
+label is set. A masked address can therefore still appear in
+`accessibility.label`. Setting an explicit `accessibilityLabel` keeps it out of
+the payload, at the cost of a screen reader announcing the field's purpose
+rather than its content. Moving the content to `accessibilityValue` looks like a
+way to keep both, but does not work on Android: React Native folds that value
+into `contentDescription`, which is the field the SDK reads.
+
+The Behaviour tab's "Masking vs the accessibility label" card demonstrates all
+three shapes side by side so you can compare them in a real payload.
+
+### Regexes are JSON strings — escape them twice
+
+Every pattern is a regex *inside* a JSON string, so a backslash must be doubled:
+write `"^\\d{4}$"`, not `"^\d{4}$"`. A single backslash makes the file invalid
+JSON, and an invalid layout config is rejected as a whole — the symptom is that
+layout capture stops entirely rather than that one pattern misbehaves. If
+captures disappear after a config edit, check the logs for:
+
+```
+Please review json data in <Module>LayoutConfig.json it might not be valid json format.
+```
+
+### CaptureLayoutDelay
+
+`CaptureLayoutDelay` is the delay in **milliseconds** before a screen is
+captured. The templates ship `500`, matching the SDK's own bundled default. A
+very small value is not a faster capture but an emptier one: a screen whose
+content arrives asynchronously gets captured before it has rendered anything but
+its header. Raise it for screens that fetch before they paint.
+
 ## Mobile Push Setup
 
 Push is configured entirely in `ConnectConfig.json` (no runtime arguments —
