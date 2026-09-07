@@ -10,14 +10,14 @@ import { LogoHeader } from '../components/LogoHeader'
 import { MaskedFieldCard } from '../components/MaskedFieldCard'
 import { NestedSignalCard } from '../components/NestedSignalCard'
 import { ReplayModalCard } from '../components/ReplayModalCard'
-import { TicketCard } from '../components/TicketCard'
+import { ScenarioCard } from '../components/ScenarioCard'
 import { SecondaryButton } from '../components/buttons'
 import { Colors } from '../theme/colors'
-import { TICKETS } from '../verification/tickets'
+import { SCENARIOS } from '../verification/scenarios'
 
 /**
  * Behaviour tab — the analytics half of the SDK, and the verification surface
- * for the fixes listed in `verification/tickets.ts`.
+ * for the fixes listed in `verification/scenarios.ts`.
  *
  * It is the root of a stack rather than a plain screen, because two of the
  * checks need somewhere to navigate to: the screen-view cases need real
@@ -52,13 +52,13 @@ export function BehaviourScreen() {
         </Text>
       </DemoCard>
 
-      <TicketCard ticket={TICKETS['CA-155041']}>
+      <ScenarioCard scenario={SCENARIOS['screenview-referrer']}>
         <SecondaryButton
           testID="btn_open_screen_views"
           title="Open Screen Views"
           onPress={() => navigation.navigate('ScreenViews')}
         />
-      </TicketCard>
+      </ScenarioCard>
 
       <CustomEventCard />
 
@@ -72,33 +72,33 @@ export function BehaviourScreen() {
 
       <CaptureControlCard />
 
-      <TicketCard ticket={TICKETS['CA-156499']}>
+      <ScenarioCard scenario={SCENARIOS['webview-post-not-replayed-as-get']}>
         <SecondaryButton
           testID="btn_open_webview_post"
           title="Open WebView form POST"
           onPress={() => navigation.navigate('WebViewPost')}
         />
-      </TicketCard>
+      </ScenarioCard>
 
-      <TicketCard ticket={TICKETS['CA-152632']}>
+      <ScenarioCard scenario={SCENARIOS['replay-captures-modal']}>
         <Text style={styles.body}>
           The two modal cards below present React Native's core {'`<Modal>`'},
           which renders outside the navigator hierarchy — the case that produced
           an empty control tree.
         </Text>
-      </TicketCard>
+      </ScenarioCard>
 
       <ReplayModalCard />
       <ReplayModalCard transparent />
 
-      <TicketCard ticket={TICKETS['CA-137818']}>
+      <ScenarioCard scenario={SCENARIOS['android-compile-classpath']}>
         <View style={styles.passBox}>
           <Text style={styles.passText}>
             Verified by this build existing — a broken compile classpath fails
             the Android build outright.
           </Text>
         </View>
-      </TicketCard>
+      </ScenarioCard>
     </ScrollView>
   )
 }

@@ -2,7 +2,7 @@ import React, { type ReactNode } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { DemoCard } from './DemoCard'
 import { Colors } from '../theme/colors'
-import { CHANNEL_LABEL, type Ticket } from '../verification/tickets'
+import { CHANNEL_LABEL, type Scenario } from '../verification/scenarios'
 
 /**
  * Card shell for one fix under verification. Prints what to do and what a fixed
@@ -14,21 +14,21 @@ import { CHANNEL_LABEL, type Ticket } from '../verification/tickets'
  * still runs and still looks healthy; without the warning, "no error" reads as
  * a pass when it is really a baseline.
  */
-export function TicketCard({
-  ticket,
+export function ScenarioCard({
+  scenario,
   children,
 }: {
-  ticket: Ticket
+  scenario: Scenario
   children?: ReactNode
 }) {
-  const blocked = Boolean(ticket.blockedBy)
+  const blocked = Boolean(scenario.blockedBy)
 
   return (
-    <DemoCard title={ticket.title}>
+    <DemoCard title={scenario.title}>
       <View style={styles.metaRow}>
-        <Text style={styles.key}>{ticket.key}</Text>
+        <Text style={styles.key}>{scenario.key}</Text>
         <Text style={styles.channel}>
-          {CHANNEL_LABEL[ticket.channel]} · {ticket.platform}
+          {CHANNEL_LABEL[scenario.channel]} · {scenario.platform}
         </Text>
       </View>
 
@@ -37,14 +37,14 @@ export function TicketCard({
           <Text style={styles.blockedTitle}>
             Baseline only — fix not published
           </Text>
-          <Text style={styles.blockedBody}>{ticket.blockedBy}</Text>
+          <Text style={styles.blockedBody}>{scenario.blockedBy}</Text>
         </View>
       ) : null}
 
       <Text style={styles.label}>Do</Text>
-      <Text style={styles.body}>{ticket.action}</Text>
+      <Text style={styles.body}>{scenario.action}</Text>
       <Text style={styles.label}>Expect</Text>
-      <Text style={styles.body}>{ticket.expected}</Text>
+      <Text style={styles.body}>{scenario.expected}</Text>
 
       {children}
     </DemoCard>

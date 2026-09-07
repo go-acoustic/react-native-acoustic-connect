@@ -11,6 +11,11 @@
       ],
       "@shared/*": [
         "../shared/*"
+      ],
+      // See the note in Examples/bare-workflow/tsconfig.json: resolve the SDK to
+      // its TypeScript source rather than to the published tarball's lib/.
+      "react-native-acoustic-connect-beta": [
+        "../../src/index"
       ]
     }
   },

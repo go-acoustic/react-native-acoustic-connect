@@ -194,35 +194,59 @@ keys are frequently misread, so it is worth being precise about which of them
 
 | Key | Matched against | Effect |
 | --- | --- | --- |
-| `MaskValueList` | the element's **value** | the value is redacted |
-| `MaskIdList` | the element's **id** | the value is redacted |
-| `MaskAccessibilityIdList` | the element's **accessibility id** | the value is redacted |
-| `MaskAccessibilityLabelList` | the element's **accessibility label** | the value is redacted |
+| `MaskValueList` | the element's **value** | the element is redacted |
+| `MaskIdList` | the element's **id** | the element is redacted |
+| `MaskAccessibilityIdList` | the element's **accessibility id** | the element is redacted |
+| `MaskAccessibilityLabelList` | the element's **accessibility label** | the element is redacted |
 
-All four are lists of regular expressions, and all four redact the same thing:
-the element's **value**. The last two differ only in *what they match on* — they
-are selectors for "which elements are sensitive", useful when the value itself
-has no reliable pattern but the element is identifiable by its accessibility
-annotation. Putting value patterns in `MaskAccessibilityLabelList` matches
-nothing, because it is compared against the label, never the value.
+All four are lists of regular expressions, and all four do the same thing when
+they match: redact the element. The last two differ only in *what they match on*
+— they are selectors for "which elements are sensitive", useful when the value
+itself has no reliable pattern but the element is identifiable by its
+accessibility annotation. Putting value patterns in
+`MaskAccessibilityLabelList` matches nothing, because it is compared against the
+label, never the value.
 
-### The accessibility object is not masked
+"Redact the element" means its **value**, and — from the versions below — its
+**accessibility label and hint** as well.
 
-The captured `accessibility` object — `id`, `label`, and `hint` — is serialised
-verbatim. No mask list redacts it, including the two accessibility ones. If an
-element's value is masked, its accessibility label can still carry the same text.
+### The accessibility label and hint are masked too
 
-This matters more in React Native than in native code, because React Native
-derives `accessibilityLabel` from a `<Text>` node's own content when no explicit
-label is set. A masked address can therefore still appear in
-`accessibility.label`. Setting an explicit `accessibilityLabel` keeps it out of
-the payload, at the cost of a screen reader announcing the field's purpose
-rather than its content. Moving the content to `accessibilityValue` looks like a
-way to keep both, but does not work on Android: React Native folds that value
-into `contentDescription`, which is the field the SDK reads.
+When an element is masked, its `accessibility.label` and `accessibility.hint`
+are masked with it. `accessibility.id` is left readable on purpose — it
+identifies the element rather than describing it.
 
-The Behaviour tab's "Masking vs the accessibility label" card demonstrates all
-three shapes side by side so you can compare them in a real payload.
+**This is recent.** It needs Connect **iOS 2.1.22** or **Android
+11.0.23-beta** or newer. Older SDKs
+serialised the whole accessibility object verbatim, so text a mask list was
+configured to redact still reached the collector in `accessibility.label` — and
+no configuration could prevent it, because the two accessibility lists are
+selectors that decide *which* elements are masked, and the redaction landed on
+the value alone.
+
+React Native was hit hardest, which is why this surfaced here: RN derives
+`accessibilityLabel` from a `<Text>` node's own content when no explicit label is
+set, so the leak applied to any masked text without an explicit label — the
+default case, not an edge case.
+
+`AndroidVersion` and `iOSVersion` are empty in `ConnectConfig.example.json`,
+which resolves the newest published SDK, so a sample cloned as-is picks the fix
+up with no pin to change. If you have pinned an older version, these two fields
+are where to raise it.
+
+On an SDK without the fix, two app-side shapes were the only mitigations, and
+neither is needed now:
+
+- an explicit `accessibilityLabel`, which kept the payload clean at the cost of
+  a screen reader announcing the field's purpose but never its content;
+- moving the content to `accessibilityValue`, which looks like a way to keep
+  both and does not work on Android — React Native folds that value into
+  `contentDescription`, the very field the SDK reads as the label.
+
+The Behaviour tab's "Masking covers the accessibility label and hint" card
+renders all three shapes so you can confirm the label is redacted in a real
+payload. Note that on a standard (non-custom) mask the label empties and the key
+is dropped from the payload entirely rather than appearing blank.
 
 ### Regexes are JSON strings — escape them twice
 

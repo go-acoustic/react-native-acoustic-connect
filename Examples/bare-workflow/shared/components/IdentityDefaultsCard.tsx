@@ -1,13 +1,13 @@
 import React, { useCallback, useState } from 'react'
 import { StyleSheet, Text } from 'react-native'
 import AcousticConnectRN from 'react-native-acoustic-connect-beta'
-import { TicketCard } from './TicketCard'
+import { ScenarioCard } from './ScenarioCard'
 import { PrimaryButton, SecondaryButton } from './buttons'
 import { Colors } from '../theme/colors'
-import { TICKETS } from '../verification/tickets'
+import { SCENARIOS } from '../verification/scenarios'
 
 /**
- * Verifies the bridge's own identity defaults (CA-156074).
+ * Verifies the bridge's own identity defaults.
  *
  * The Identity tab always passes an explicit signal type and parameter map, so
  * it never exercises the defaulting path — which is exactly where the bug was.
@@ -43,7 +43,7 @@ export function IdentityDefaultsCard() {
   }, [])
 
   return (
-    <TicketCard ticket={TICKETS['CA-156074-identity']}>
+    <ScenarioCard scenario={SCENARIOS['identity-login-method-default']}>
       <PrimaryButton
         testID="btn_identity_defaulted"
         title="Log identity — omit both optional args"
@@ -59,7 +59,7 @@ export function IdentityDefaultsCard() {
           {result}
         </Text>
       ) : null}
-    </TicketCard>
+    </ScenarioCard>
   )
 }
 

@@ -33,5 +33,5 @@ The standalone published sample must be self-contained (only
 `Examples/bare-workflow` is shipped to the public repo), so the pipeline
 vendors this directory into it at build time rather than relying on the sibling.
 
-> When the Expo sample gains its own standalone publish path (CA-143485), that
-> pipeline must vendor this directory the same way.
+> When the Expo sample gains its own standalone publish path, that pipeline
+> must vendor this directory the same way.

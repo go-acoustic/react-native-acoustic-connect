@@ -1,13 +1,13 @@
 import React, { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
-import { TicketCard } from './TicketCard'
+import { ScenarioCard } from './ScenarioCard'
 import { DemoTextField } from './DemoTextField'
 import { Colors } from '../theme/colors'
-import { TICKETS } from '../verification/tickets'
+import { SCENARIOS } from '../verification/scenarios'
 
 /**
  * Verifies that the layout config in ConnectConfig.json actually reaches the
- * SDK (CA-156436).
+ * SDK.
  *
  * Masking is the observable proxy. The config ships a `MaskValueList` regex for
  * `SECRET-…`, so if the block is applied the typed value arrives masked in the
@@ -24,7 +24,7 @@ export function MaskedFieldCard() {
   const [value, setValue] = useState('')
 
   return (
-    <TicketCard ticket={TICKETS['CA-156436']}>
+    <ScenarioCard scenario={SCENARIOS['layout-config-applied']}>
       <DemoTextField
         testID="field_masked"
         label="Masked field"
@@ -40,7 +40,7 @@ export function MaskedFieldCard() {
           lowercase to x, digits to 9 — not the text you typed.
         </Text>
       </View>
-    </TicketCard>
+    </ScenarioCard>
   )
 }
 

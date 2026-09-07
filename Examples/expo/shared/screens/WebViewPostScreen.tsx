@@ -3,14 +3,13 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { WebView, type WebViewNavigation } from 'react-native-webview'
 import AcousticConnectRN from 'react-native-acoustic-connect-beta'
 import { DemoCard } from '../components/DemoCard'
-import { TicketCard } from '../components/TicketCard'
+import { ScenarioCard } from '../components/ScenarioCard'
 import { PrimaryButton, SecondaryButton } from '../components/buttons'
 import { Colors } from '../theme/colors'
-import { TICKETS } from '../verification/tickets'
+import { SCENARIOS } from '../verification/scenarios'
 
 /**
- * Verifies that the SDK's WebView capture does not turn a form POST into a GET
- * (CA-156499).
+ * Verifies that the SDK's WebView capture does not turn a form POST into a GET.
  *
  * The mechanism it probes: the capture path reloaded the WebView's current URL
  * to grab the layout, and a reload of a POST result re-issues it as a GET. The
@@ -66,7 +65,7 @@ export function WebViewPostScreen() {
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-      <TicketCard ticket={TICKETS['CA-156499']}>
+      <ScenarioCard scenario={SCENARIOS['webview-post-not-replayed-as-get']}>
         <View style={styles.statusBox}>
           <Text style={styles.mono}>{status ?? 'submit the form below'}</Text>
           <Text style={styles.mono}>navigations: {reloads}</Text>
@@ -108,7 +107,7 @@ export function WebViewPostScreen() {
             webRef.current?.reload()
           }}
         />
-      </TicketCard>
+      </ScenarioCard>
 
       <DemoCard title="WebView">
         <View style={styles.webWrap}>

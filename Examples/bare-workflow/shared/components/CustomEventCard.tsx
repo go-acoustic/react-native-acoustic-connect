@@ -1,14 +1,14 @@
 import React, { useCallback, useState } from 'react'
 import { Platform, StyleSheet, Text, View } from 'react-native'
 import AcousticConnectRN from 'react-native-acoustic-connect-beta'
-import { TicketCard } from './TicketCard'
+import { ScenarioCard } from './ScenarioCard'
 import { PrimaryButton } from './buttons'
 import { Colors } from '../theme/colors'
-import { TICKETS } from '../verification/tickets'
+import { SCENARIOS } from '../verification/scenarios'
 
 /**
  * Verifies that custom-event values reach the collector as values rather than
- * as their Kotlin wrapper form (CA-151429).
+ * as their Kotlin wrapper form.
  *
  * The payload deliberately mixes all three types the bridge accepts, because
  * the bug was in the variant unwrapping and every type went through the same
@@ -40,7 +40,7 @@ export function CustomEventCard() {
   }, [])
 
   return (
-    <TicketCard ticket={TICKETS['CA-151429']}>
+    <ScenarioCard scenario={SCENARIOS['custom-event-value-types']}>
       <View style={styles.payloadBox}>
         <Text style={styles.mono}>{JSON.stringify(PAYLOAD, null, 2)}</Text>
       </View>
@@ -54,7 +54,7 @@ export function CustomEventCard() {
           {result}
         </Text>
       ) : null}
-    </TicketCard>
+    </ScenarioCard>
   )
 }
 

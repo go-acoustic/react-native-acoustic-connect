@@ -2,7 +2,7 @@
  * Registry of the fixes this harness verifies, and — just as important — whether
  * each one is actually verifiable against the SDK build the app is running.
  *
- * A fix reaches the app through one of three channels, and they ship on
+ * A fix reaches the app through one of these channels, and they ship on
  * different cadences:
  *
  * - `rn` — TypeScript, or the Kotlin/Swift bridge in this package. Ships with
@@ -10,6 +10,9 @@
  * - `ios-native` — the Connect iOS pod. Only present once a pod containing the
  *   commit is published, which lags the source fix.
  * - `android-native` — the Connect Android artifact. Same lag.
+ * - `native` — both native SDKs at once, each with its own lag, so one platform
+ *   can be verifiable while the other is still a baseline.
+ * - `build` — proven by the app building and running at all, with nothing to tap.
  *
  * `blockedBy` is set when the fix exists in source but no published native
  * artifact carries it yet. Those cards still render, deliberately: running them
@@ -18,11 +21,17 @@
  * prevent.
  */
 
-export type Channel = 'rn' | 'ios-native' | 'android-native' | 'build'
+export type Channel =
+  | 'rn'
+  | 'ios-native'
+  | 'android-native'
+  | 'native'
+  | 'build'
 
 export type Platform = 'ios' | 'android' | 'both'
 
-export type Ticket = {
+export type Scenario = {
+  /** Stable, descriptive id for the scenario — safe to quote in a support thread. */
   key: string
   title: string
   /** What the tester does. */
@@ -35,9 +44,9 @@ export type Ticket = {
   blockedBy?: string
 }
 
-export const TICKETS: Record<string, Ticket> = {
-  'CA-151429': {
-    key: 'CA-151429',
+export const SCENARIOS: Record<string, Scenario> = {
+  'custom-event-value-types': {
+    key: 'custom-event-value-types',
     title: 'Custom-event values keep their type',
     action: 'Send a custom event carrying a string, a boolean and a number.',
     expected:
@@ -45,8 +54,8 @@ export const TICKETS: Record<string, Ticket> = {
     channel: 'rn',
     platform: 'both',
   },
-  'CA-156074-signal': {
-    key: 'CA-156074',
+  'signal-nested-json': {
+    key: 'signal-nested-json',
     title: 'logSignal accepts nested JSON',
     action: 'Send the nested signal payload (object + array of objects).',
     expected:
@@ -54,8 +63,8 @@ export const TICKETS: Record<string, Ticket> = {
     channel: 'rn',
     platform: 'both',
   },
-  'CA-156074-identity': {
-    key: 'CA-156074',
+  'identity-login-method-default': {
+    key: 'identity-login-method-default',
     title: 'loggedIn defaults to loginMethod',
     action:
       'Log an identity with both the signal type and the parameters omitted, so the bridge has to supply its own defaults.',
@@ -64,8 +73,8 @@ export const TICKETS: Record<string, Ticket> = {
     channel: 'rn',
     platform: 'both',
   },
-  'CA-156436': {
-    key: 'CA-156436',
+  'layout-config-applied': {
+    key: 'layout-config-applied',
     title: 'Layout config from ConnectConfig.json is applied',
     action:
       'Type into the masked field below, then read the value in the posted layout message.',
@@ -74,8 +83,8 @@ export const TICKETS: Record<string, Ticket> = {
     channel: 'rn',
     platform: 'both',
   },
-  'CA-137818': {
-    key: 'CA-137818',
+  'android-compile-classpath': {
+    key: 'android-compile-classpath',
     title: 'eocore/tealeaf on the Android compile classpath',
     action:
       'Nothing to tap — this one is proven by the app building and running at all.',
@@ -84,8 +93,8 @@ export const TICKETS: Record<string, Ticket> = {
     channel: 'build',
     platform: 'android',
   },
-  'CA-152632': {
-    key: 'CA-152632',
+  'replay-captures-modal': {
+    key: 'replay-captures-modal',
     title: 'Session replay captures React Native <Modal>',
     action: 'Open each modal, interact, and close it.',
     expected:
@@ -93,8 +102,8 @@ export const TICKETS: Record<string, Ticket> = {
     channel: 'ios-native',
     platform: 'ios',
   },
-  'CA-155041': {
-    key: 'CA-155041',
+  'screenview-referrer': {
+    key: 'screenview-referrer',
     title: 'Screenview referrer points at the previous screen',
     action:
       'Move between screens in Screen Views and read the referrer on each screenview.',
@@ -105,8 +114,8 @@ export const TICKETS: Record<string, Ticket> = {
     blockedBy:
       'Fixed in iOS source on 2026-08-20, but the newest published pod (AcousticConnectDebug 2.1.18) was tagged 2026-07-29. Running this today records the failing baseline.',
   },
-  'CA-156499': {
-    key: 'CA-156499',
+  'webview-post-not-replayed-as-get': {
+    key: 'webview-post-not-replayed-as-get',
     title: 'WebView form POST is not replayed as GET',
     action: 'Submit the form in the WebView screen.',
     expected:
@@ -116,11 +125,22 @@ export const TICKETS: Record<string, Ticket> = {
     blockedBy:
       'This harness does not reproduce the 405, and the shipped SDK test explains why: WebView never calls shouldOverrideUrlLoading for a main-frame form POST, so a normal submission cannot trigger the conversion — the fix\'s own test drives the hazard directly instead. What this harness DID establish: setting GoogleWebViewEnabled false suppresses WebView instrumentation completely (Found Webview 11 -> 0, RNCWebView nodes 3 -> 0, with the screen demonstrably visited), which is the customer\'s missing workaround. On connect 11.0.18-beta — which does NOT carry the fix — the POST survives identically, with WebView capture demonstrably engaged (capture JS injected, RNCWebView nodes in the layout) and after an explicit logScreenLayout on the POST result. So a pass here says nothing about the fix. Lead worth chasing: the SDK logs "WebView Id is: null, DCID value is: null" for the RNCWebView, which suggests it never associates an id with the view and may skip the webview capture path — including the reload — entirely.',
   },
+  'accessibility-label-masking': {
+    key: 'accessibility-label-masking',
+    title: 'Masking covers the accessibility label and hint',
+    action:
+      'Drive a capture on the card below, then read the `accessibility` object of each row in the posted layout message.',
+    expected:
+      "No row carries the address in `accessibility.label`. Masking used to redact an element's value only and serialise the accessibility object verbatim, so on React Native — where a <Text> node's label defaults to its own content — a masked address still travelled in the label. `accessibility.id` is still present and unredacted, deliberately: it identifies the element rather than describing it. Needs Connect iOS 2.1.22+ or Android 11.0.23-beta+ — both published, and AndroidVersion / iOSVersion are empty in ConnectConfig.example.json, so an unpinned sample resolves them. Against a pinned older SDK this records the failing baseline instead.",
+    channel: 'native',
+    platform: 'both',
+  },
 }
 
 export const CHANNEL_LABEL: Record<Channel, string> = {
   'rn': 'React Native SDK',
   'ios-native': 'iOS native SDK',
   'android-native': 'Android native SDK',
+  'native': 'iOS + Android native SDK',
   'build': 'Build-time',
 }
