@@ -9,17 +9,15 @@ import { Colors } from '../theme/colors'
  * Runtime capture control, and what it does and does not stop.
  *
  * `disable()` reaches `Connect.disable()`, which unregisters the SDK's activity
- * lifecycle callbacks and clears its enabled flag — so on iOS, where the React
- * Native wrapper only advances the current screen name, nothing drives capture
- * afterwards and it genuinely stops.
+ * lifecycle callbacks and clears its enabled flag. Capture stops on both
+ * platforms: the wrapper's own navigation-driven bridge methods now check the
+ * enabled flag before doing anything, so nothing keeps capturing behind a
+ * disabled SDK. Android used to be the exception — its bridge captured
+ * unconditionally, consulting the per-screen `CaptureUserEvents` config but
+ * never whether the SDK was still on — and that gap is closed.
  *
- * Android differs, and not because of the native SDK. The wrapper calls
- * `logScreenLayout` on every navigation there, and that bridge method captures
- * unconditionally — it consults the per-screen `CaptureUserEvents` config but
- * never asks whether the SDK is still enabled. So an explicit navigation-driven
- * capture continues after `disable()`.
- *
- * Tap Disable, then move between screens and watch for further layout messages.
+ * Tap Disable, then move between screens and watch for further layout messages:
+ * there should be none until Re-enable.
  */
 export function CaptureControlCard() {
   const [state, setState] = useState<string | null>(null)
@@ -39,8 +37,9 @@ export function CaptureControlCard() {
   return (
     <DemoCard title="Runtime capture control">
       <Text style={styles.body}>
-        Whether `disable()` actually stops capture is platform-dependent. Use
-        this to check on the build in front of you rather than assuming.
+        `disable()` stops capture on both platforms. Confirm it on the build in
+        front of you rather than assuming: tap Disable, navigate a few screens,
+        and check that no further layout messages arrive.
       </Text>
       <PrimaryButton
         testID="btn_capture_disable"

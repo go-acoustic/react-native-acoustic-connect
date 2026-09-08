@@ -89,7 +89,14 @@ export function WebViewPostScreen() {
             triggers one by itself here: the configured trigger is screen
             change, and submitting the form does not change screens. Without
             this button the check passes on a broken build too — it did, which
-            is why the button exists. */}
+            is why the button exists.
+
+            SCROLL THE WEBVIEW INTO VIEW FIRST. The native tree-walk skips any
+            subtree outside the viewport — by design, since a capture records
+            what is on screen — and the WebView sits below the fold at the
+            default scroll position on a phone. Capturing from there produces a
+            layout with no WebView nodes at all, which looks exactly like
+            "capture never engaged" and has been mistaken for it. */}
         <SecondaryButton
           testID="btn_webview_capture"
           title="Capture layout now (triggers the reload)"
@@ -98,6 +105,11 @@ export function WebViewPostScreen() {
             AcousticConnectRN.logScreenLayout('WebViewPost', 0)
           }}
         />
+        <Text style={styles.hint}>
+          Scroll the WebView fully into view before capturing — the capture
+          skips off-screen subtrees, so a WebView below the fold yields a layout
+          with no WebView nodes.
+        </Text>
         <SecondaryButton
           testID="btn_webview_reset"
           title="Reload form"
@@ -164,6 +176,7 @@ const styles = StyleSheet.create({
     color: Colors.violet,
     fontFamily: 'Courier',
   },
+  hint: { fontSize: 12, lineHeight: 17, color: Colors.darkGrey },
   webWrap: { height: 420, borderRadius: 8, overflow: 'hidden' },
   web: { flex: 1, backgroundColor: Colors.white },
 })
