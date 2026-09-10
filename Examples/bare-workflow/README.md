@@ -210,6 +210,27 @@ label, never the value.
 "Redact the element" means its **value**, and — from the versions below — its
 **accessibility label and hint** as well.
 
+### An unmatched pattern means unmasked — not "masked elsewhere"
+
+All four lists above are optional and independent: nothing is masked by
+default, and a control whose id/value/accessibility id/accessibility label
+matches none of them is not redacted at all, in any field. Worth stating
+plainly because the failure mode is silent — a client that added a few
+patterns and moved on can be shipping a control that was never selected in the
+first place, and there is no signal from the SDK that anything was skipped.
+
+Email addresses are a common gap: they don't match a card-number-style regex,
+and any free-text field can contain one. If your app collects email
+addresses, add a pattern to `MaskValueList`:
+
+```json
+"MaskValueList": ["[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"]
+```
+
+`GlobalScreenSettings.Masking.MaskValueList` in this sample's
+`ConnectConfig.example.json` already ships it, alongside the card-number
+patterns.
+
 ### The accessibility label and hint are masked too
 
 When an element is masked, its `accessibility.label` and `accessibility.hint`
@@ -267,6 +288,41 @@ captured. The templates ship `500`, matching the SDK's own bundled default. A
 very small value is not a faster capture but an emptier one: a screen whose
 content arrives asynchronously gets captured before it has rendered anything but
 its header. Raise it for screens that fetch before they paint.
+
+### `NumberOfWebViews` silently turns off all iOS layout capture
+
+Leave `NumberOfWebViews` at `0` — the value this sample and every shipped
+template use. On iOS, any value greater than zero marks the screens a rule
+covers as web-view screens, and automatic layout capture is skipped for them.
+
+The trap is that it is usually set on `GlobalScreenSettings`, the rule applying
+to **every** screen with no more specific rule — and every React Native screen
+is in that position, because they share one generic native container class. So
+a single `"NumberOfWebViews": 1` there switches off layout capture for the whole
+app, including screens with no web content:
+
+```json
+{
+  "Connect": {
+    "layoutConfigIos": {
+      "AutoLayout": {
+        "GlobalScreenSettings": { "NumberOfWebViews": 0 }
+      }
+    }
+  }
+}
+```
+
+Nothing warns you. Screen views, clicks and custom events keep flowing, so the
+symptom is layout (type-10) messages going missing while everything else
+arrives — which reads like a capture failure rather than a setting. During
+release verification this cost days before the cause was found; flipping the
+value back to `0`, with no code change, took one session from 0 to 541 layout
+messages.
+
+To stand layout capture down deliberately, set `CaptureLayoutOn: 0` on the rule
+instead. That is the key that means it, and it leaves `NumberOfWebViews` free to
+describe the screen.
 
 ## Mobile Push Setup
 
