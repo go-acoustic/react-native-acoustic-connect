@@ -25,9 +25,10 @@ import { Colors } from '../theme/colors'
  *
  * To read the payload, point `PostMessageUrl` in `ConnectConfig.json` at a
  * local sink; the signal rides in a type-21 message under the `signal` key.
- * Note that a **top-level** number is dropped on Android (an SDK limitation in
- * `JsonUtil.getHashValues`); numbers nested inside an object or array survive,
- * which is why `cart.items` below sits one level down.
+ * Note that a **top-level** number needs Connect Android 11.0.24-beta or newer
+ * — `JsonUtil.getHashValues` gained its number branch there, and dropped such
+ * values before. Numbers nested inside an object or array survive on every
+ * supported version, which is why `cart.items` below sits one level down.
  */
 
 const NESTED_PAYLOAD = {

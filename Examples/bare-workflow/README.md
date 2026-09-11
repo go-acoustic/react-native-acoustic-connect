@@ -635,6 +635,8 @@ posted message. Two things to know if you do:
   silently.
 
 One platform difference is worth knowing when reading those payloads: Android's
-signal serializer drops a **top-level** numeric value, while iOS carries it.
-Numbers nested inside an object or array behave identically on both. The card's
-nested payload puts its numbers one level down for that reason.
+signal serializer carries a **top-level** numeric value only from Connect
+Android 11.0.24-beta onward, and dropped it before that; iOS has always carried
+it. Numbers nested inside an object or array behave identically on both, on
+every supported version. The card's nested payload puts its numbers one level
+down for that reason.

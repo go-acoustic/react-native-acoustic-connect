@@ -59,7 +59,7 @@ export const SCENARIOS: Record<string, Scenario> = {
     title: 'logSignal accepts nested JSON',
     action: 'Send the nested signal payload (object + array of objects).',
     expected:
-      'Nesting survives to the collector on both platforms. A top-level number is still dropped on Android — an SDK limitation, not this fix — which is why the payload keeps its numbers one level down.',
+      'Nesting survives to the collector on both platforms. The payload keeps its numbers one level down, which is portable across every supported Connect Android version; a top-level number needs Connect Android 11.0.24-beta or newer, having been dropped by the SDK serializer before that.',
     channel: 'rn',
     platform: 'both',
   },
