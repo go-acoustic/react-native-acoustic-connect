@@ -63,7 +63,7 @@ export function resolveDevelopmentTeam(
  * Why this matters: the NSE mod injects the `aps-environment` entitlement, but
  * a CLI build (`expo run:ios` / `xcodebuild`) with no signing team falls back
  * to ad-hoc signing (`CODE_SIGN_IDENTITY = -`), which DROPS that entitlement —
- * so the OS issues no APNs token and push silently fails (CA-144135 §6). Setting
+ * so the OS issues no APNs token and push silently fails. Setting
  * the team closes that loop on the prebuild path the SDK owns. Provisioning
  * itself still needs the developer's Apple ID in Xcode and
  * `-allowProvisioningUpdates` on the build (documented in the README).

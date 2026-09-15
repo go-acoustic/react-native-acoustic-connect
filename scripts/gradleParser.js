@@ -21,7 +21,7 @@ console.log("Run gradleParser.js");
 // new architecture does not guarantee — and fails the Gradle sync with
 // "Project with path ':react-native-acoustic-connect' could not be
 // found" otherwise. `require.resolve` walks up node_modules from the Android
-// rootDir and finds the package regardless of autolinking. See CA-144314.
+// rootDir and finds the package regardless of autolinking.
 const gradleCode = `apply from: new File(["node", "--print", "require.resolve('react-native-acoustic-connect/package.json')"].execute(null, rootDir).text.trim()).getParentFile().getAbsolutePath() + "/android/config.gradle"`
 // Matches the legacy `apply from: project(':react-native-acoustic-connect')...`
 // line so an existing integration is upgraded in place on the next install.

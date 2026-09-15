@@ -21,7 +21,15 @@ react {
     //   The list of variants to that are debuggable. For those we're going to
     //   skip the bundling of the JS bundle and the assets. By default is just 'debug'.
     //   If you add flavors like lite, prod, etc. you'll have to list your debuggableVariants.
-    // debuggableVariants = ["liteDebug", "prodDebug"]
+    //
+    //   CA-157726: with -PciBundleDebugJs, 'debug' is dropped from this list so the
+    //   debug APK gets a real Hermes JS bundle baked in. CI needs that — the Android
+    //   smoke stage launches the app with no Metro server running, and without a
+    //   bundle the app only ever shows "Unable to load script", so no SDK code runs
+    //   and the launch asserts nothing. It also makes that stage the only Android
+    //   JS-bundling signal on a feature branch. Off by default: a bundled debug build
+    //   breaks Fast Refresh, which is what local development uses this app for.
+    debuggableVariants = project.hasProperty('ciBundleDebugJs') ? [] : ["debug"]
 
     /* Bundling */
     //   A list containing the node command and its flags. Default is just 'node'.

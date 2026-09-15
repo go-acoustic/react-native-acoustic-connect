@@ -1,0 +1,517 @@
+/********************************************************************************************
+* Copyright (C) 2025 Acoustic, L.P. All rights reserved.
+*
+* NOTICE: This file contains material that is confidential and proprietary to
+* Acoustic, L.P. and/or other developers. No license is granted under any intellectual or
+* industrial property rights of Acoustic, L.P. except as may be provided in an agreement with
+* Acoustic, L.P. Any unauthorized copying or distribution of content from this file is
+* prohibited.
+********************************************************************************************/
+
+import java.util.regex.Matcher
+import java.util.regex.Pattern
+import groovy.json.JsonSlurper
+import groovy.json.JsonOutput
+
+def getConfigJSON() {
+    def configFile = "$project.rootDir/../ConnectConfig.json"
+    println("Reading file $configFile")
+    def jsonSlurper = new JsonSlurper()
+    return jsonSlurper.parse(new File(configFile))
+}
+
+def updateTealeafBasicConfig(mp, json) {
+    def propertiesFile = "$mp/src/main/assets/TealeafBasicConfig.properties"
+    FileInputStream _file = new FileInputStream(propertiesFile);
+    Properties properties = new Properties();
+    properties.load(_file);
+    _file.close();
+
+    FileOutputStream out = new FileOutputStream(propertiesFile);
+
+    json.each { key, value ->
+        if(key != "Connect"){ return }
+
+        println("Update/Add the following key/values:")
+        value.each { config_key, config_value ->
+            if(config_value.getClass() != java.lang.String
+            && config_value.getClass() != java.lang.Boolean
+            && config_value.getClass() != java.lang.Integer){
+                return
+            }
+            // Just update the following items
+            if (config_key == "AppKey" ||
+                config_key == "PostMessageUrl" ||
+                config_key == "KillSwitchUrl" ||
+                config_key == "KillSwitchEnabled" ||
+                config_key == "KillSwitchMaxNumberOfTries" ||
+                config_key == "KillSwitchTimeInterval" ||
+                config_key == "UseWhiteList" ||
+                config_key == "WhiteListParam" ||
+                config_key == "UseRandomSample" ||
+                config_key == "RandomSampleParam" ||
+                config_key == "PrintScreen" ||
+                config_key == "Connection" ||
+                config_key == "MaxStringsLength" ||
+                config_key == "CookieUrl" ||
+                config_key == "CookieParam" ||
+                config_key == "CookiePath" ||
+                config_key == "CookieDomain" ||
+                config_key == "CookieExpires" ||
+                config_key == "CookieSecure" ||
+                config_key == "CookieExpiresFormat" ||
+                config_key == "SessionTimeout" ||
+                config_key == "SessionTimeoutKillSwitch" ||
+                config_key == "disableTLTDID" ||
+                config_key == "ScreenshotFormat" ||
+                config_key == "PercentOfScreenshotsSize" ||
+                config_key == "PercentToCompressImage" ||
+                config_key == "ScreenShotPixelDensity" ||
+                config_key == "LogViewLayoutOnScreenTransition" ||
+                config_key == "GetImageDataOnScreenLayout" ||
+                config_key == "SetGestureDetector" ||
+                config_key == "CaptureNativeGesturesOnWebview" ||
+                config_key == "LogLocationEnabled" ||
+                config_key == "LogLocationTries" ||
+                config_key == "LogLocationTimeout" ) {
+                println(config_key + "=" + config_value)
+                properties.setProperty(config_key, config_value.toString())
+            }
+        }
+    }
+
+    properties.store(out, null);
+    out.close();
+    println("Updating:$propertiesFile")
+}
+
+def updateConnectBasicConfig(mp, json) {
+    def propertiesFile = "$mp/src/main/assets/ConnectBasicConfig.properties"
+    FileInputStream _file = new FileInputStream(propertiesFile);
+    Properties properties = new Properties();
+    properties.load(_file);
+    _file.close();
+
+    FileOutputStream out = new FileOutputStream(propertiesFile);
+
+    json.each { key, value ->
+        if(key != "Connect"){ return }
+
+        println("Update/Add the following key/values:")
+        value.each { config_key, config_value ->
+            if(config_value.getClass() != java.lang.String
+            && config_value.getClass() != java.lang.Boolean
+            && config_value.getClass() != java.lang.Integer){
+                return
+            }
+            // Just update the following items
+            if (config_key == "AppKey" ||
+                config_key == "PostMessageUrl" ||
+                config_key == "KillSwitchUrl" ||
+                config_key == "KillSwitchEnabled" ||
+                config_key == "KillSwitchMaxNumberOfTries" ||
+                config_key == "KillSwitchTimeInterval" ||
+                config_key == "UseWhiteList" ||
+                config_key == "WhiteListParam" ||
+                config_key == "UseRandomSample" ||
+                config_key == "RandomSampleParam" ||
+                config_key == "PrintScreen" ||
+                config_key == "Connection" ||
+                config_key == "MaxStringsLength" ||
+                config_key == "CookieUrl" ||
+                config_key == "CookieParam" ||
+                config_key == "CookiePath" ||
+                config_key == "CookieDomain" ||
+                config_key == "CookieExpires" ||
+                config_key == "CookieSecure" ||
+                config_key == "CookieExpiresFormat" ||
+                config_key == "SessionTimeout" ||
+                config_key == "SessionTimeoutKillSwitch" ||
+                config_key == "disableTLTDID" ||
+                config_key == "ScreenshotFormat" ||
+                config_key == "PercentOfScreenshotsSize" ||
+                config_key == "PercentToCompressImage" ||
+                config_key == "ScreenShotPixelDensity" ||
+                config_key == "LogViewLayoutOnScreenTransition" ||
+                config_key == "GetImageDataOnScreenLayout" ||
+                config_key == "SetGestureDetector" ||
+                config_key == "CaptureNativeGesturesOnWebview" ||
+                config_key == "LogLocationEnabled" ||
+                config_key == "LogLocationTries" ||
+                config_key == "LogLocationTimeout" ) {
+                println(config_key + "=" + config_value)
+                properties.setProperty(config_key, config_value.toString())
+            }
+        }
+    }
+
+    properties.store(out, null);
+    out.close();
+    println("Updating:$propertiesFile")
+}
+
+/**
+ * Recursively merges `override` onto `base`. Nested objects merge key by key;
+ * every other value, arrays included, is replaced outright. Mirrors
+ * ConnectRNParsing.deepMerging on iOS so both platforms layer a shared config
+ * block and a platform-specific one the same way.
+ */
+def deepMergeConfig(base, override) {
+    if (!(base instanceof Map) || !(override instanceof Map)) {
+        return override
+    }
+    def merged = [:]
+    merged.putAll(base)
+    override.each { key, value ->
+        if (merged[key] instanceof Map && value instanceof Map) {
+            merged[key] = deepMergeConfig(merged[key], value)
+        } else {
+            merged[key] = value
+        }
+    }
+    return merged
+}
+
+def updateLayoutConfig(mp, json, appAssetsDir){
+    // ── Legacy file, behaviour unchanged ────────────────────────────────────
+    // TealeafLayoutConfig.json is what this script has always written. The
+    // Connect SDK does not read it (see below), but it is left exactly as it
+    // was so nothing that does read it regresses.
+    def layoutConfigPath = "$mp/src/main/assets/TealeafLayoutConfig.json"
+    def layoutConfigDefaultPath = "$mp/src/main/assets/TealeafLayoutConfigDefault.json"
+    def override = json.Connect.layoutConfig;
+    def overrideJson =  JsonOutput.toJson(override)
+
+    if(override != null){
+        def layoutConfigFile = new File(layoutConfigPath)
+        layoutConfigFile.text = overrideJson
+    } else {
+        def layoutConfigDefaultFile = new File(layoutConfigDefaultPath)
+        def layoutConfigFile = new File(layoutConfigPath)
+        layoutConfigFile.text = layoutConfigDefaultFile.text
+    }
+    println("Updating:$layoutConfigPath")
+
+    // ── The file the Connect SDK actually reads ─────────────────────────────
+    // EOCore's ConfigService.getConfig composes "<moduleName>LayoutConfig.json"
+    // and sets moduleName to "Connect" whenever the Connect class is on the
+    // classpath — which it always is here. So the SDK reads
+    // ConnectLayoutConfig.json, never the Tealeaf-branded name above.
+    //
+    // Compose it the same way iOS does: the shared `layoutConfig` block is the
+    // base and `layoutConfigAndroid` is deep-merged over it, so a platform
+    // value wins key by key while the shared baseline survives.
+    def connectLayoutConfigFile = new File("$mp/src/main/assets/ConnectLayoutConfig.json")
+    def shared = json.Connect.layoutConfig
+    def androidSpecific = json.Connect.layoutConfigAndroid
+    def merged = shared
+    if (androidSpecific != null) {
+        merged = (merged == null) ? androidSpecific : deepMergeConfig(merged, androidSpecific)
+    }
+
+    if (merged != null) {
+        connectLayoutConfigFile.text = JsonOutput.prettyPrint(JsonOutput.toJson(merged))
+        println("Updating:${connectLayoutConfigFile.path}")
+
+        // Android asset merging gives the app's own sourceSet priority over a
+        // library's, so an app-level copy silently wins over what we just
+        // wrote. That is deliberate — integrations that already ship their own
+        // file keep working untouched — but it is worth saying out loud,
+        // because otherwise the ConnectConfig.json block looks ignored.
+        if (appAssetsDir != null) {
+            def appAsset = new File(appAssetsDir, "ConnectLayoutConfig.json")
+            if (appAsset.exists()) {
+                println("**Acoustic WARNING: ${appAsset.path} exists. Android asset merging gives your app's copy priority over the plugin's, so the layout block in ConnectConfig.json will NOT take effect. Keep one or the other, not both.")
+            }
+        }
+    } else if (connectLayoutConfigFile.exists()) {
+        // Nothing configured. Remove a file an earlier build wrote so the
+        // default inside the Connect artifact applies again. Writing a default
+        // copy here instead would shadow the artifact for every consumer and
+        // change behaviour for integrations that never asked for an override.
+        connectLayoutConfigFile.delete()
+        println("Removed:${connectLayoutConfigFile.path} (no layout config in ConnectConfig.json; using the Connect artifact default)")
+    }
+}
+
+def updateAdvConfig(mp, json) {
+    // The overrides are collected once and then written to both advanced-config files.
+    //
+    // TealeafAdvancedConfig.json is what this script has always written. The Connect SDK
+    // does not read it: EOCore's ConfigService.getConfig composes
+    // "<moduleName>AdvancedConfig.json" and sets moduleName to "Connect" whenever the
+    // Connect class is on the classpath — which it always is here. So every override
+    // written only to the Tealeaf-branded name was silently discarded, including
+    // GoogleWebViewEnabled and ExtendsGoogleWebViewClient, which are the documented way to
+    // opt a WebView out of auto instrumentation. The legacy file is still written so
+    // nothing that does read it regresses.
+    //
+    // Neither file is required. This script runs inside the consumer's build, so a missing
+    // asset must not fail it — advanced config is optional by nature, and if the package has
+    // been pruned or repackaged without ConnectAdvancedConfig.json the app still runs on the
+    // defaults bundled in the SDK's own AAR. Losing the overrides is worth saying out loud,
+    // though, which is the difference between the two branches below.
+    def advConfigTargets = [
+        [path: "$mp/src/main/assets/TealeafAdvancedConfig.json", readBySdk: false],
+        [path: "$mp/src/main/assets/ConnectAdvancedConfig.json", readBySdk: true],
+    ]
+    def overrides = [:]
+
+    json.each { key, value ->
+        if(key != "Connect"){ return }
+
+        value.each { config_key, config_value ->
+            if(config_value.getClass() != java.lang.String
+            && config_value.getClass() != java.lang.Boolean
+            && config_value.getClass() != java.lang.Integer){
+                return
+            }
+            // Just update the following items
+            if (config_key == "AddMessageTypeHeader" ||
+                config_key == "ClickEventEnabled" ||
+                config_key == "ColorAccent" ||
+                config_key == "ColorPrimary" ||
+                config_key == "ColorPrimaryDark" ||
+                config_key == "DefaultAutoLayoutDelay" ||
+                config_key == "DefaultTextViewGravity" ||
+                config_key == "DefaultTextViewPaddingLeft" ||
+                config_key == "DefaultTextViewPaddingRight" ||
+                config_key == "EditTextEnabled" ||
+                config_key == "EnableActivityLifeCycleListener" ||
+                config_key == "EnableFragmentLifeCycleListener" ||
+                config_key == "EnableGestureSwipeLogScreen" ||
+                config_key == "EnableScreenshotCache" ||
+                config_key == "ExcludeTextViewStyleForOS" ||
+                config_key == "ExtendsGoogleWebViewClient" ||
+                config_key == "FilterMessageTypes" ||
+                config_key == "FlushUpdatedPlaceHolders" ||
+                config_key == "GenerateImageHash" ||
+                config_key == "GestureConfirmedScreenshotDelay" ||
+                config_key == "GoogleWebViewEnabled" ||
+                config_key == "InitialZIndex" ||
+                config_key == "IpPlaceholder" ||
+                config_key == "KillSwitchAsync" ||
+                config_key == "KillSwitchDelay" ||
+                config_key == "LogFullRequestResponsePayloads" ||
+                config_key == "MessageTypeHeader" ||
+                config_key == "MessageTypes" ||
+                config_key == "NavigationControllerEnabled" ||
+                config_key == "RemoveAllCookies" ||
+                config_key == "RemoveIp" ||
+                config_key == "ScreenViewUnloadDelay" ||
+                config_key == "StripDrawableFolderExt" ||
+                config_key == "SwitchWidth" ||
+                config_key == "TouchEventEnabled" ||
+                config_key == "UseXpathId" ||
+                config_key == "UseZindex" ||
+                config_key == "WebViewDelay" ||
+                config_key == "WebViewSetTagForId" ) {
+                println(config_key + "=" + config_value)
+                overrides[config_key] = config_value
+            }
+        }
+    }
+
+    // Merge into each file rather than replacing it: both carry values this script never
+    // sets, most importantly LibraryVersion, which the SDK reports in its X-Tealeaf header.
+    def jsonSlurper = new JsonSlurper()
+    advConfigTargets.each { target ->
+        def advConfigFile = new File(target.path)
+
+        if (!advConfigFile.exists()) {
+            if (target.readBySdk) {
+                println("WARNING: Acoustic Connect: ${advConfigFile.name} is not present in " +
+                    "the SDK package (looked in ${advConfigFile.parent}). That is the file the " +
+                    "Connect SDK reads its advanced configuration from, so the advanced " +
+                    "settings in ConnectConfig.json's Connect block will NOT be applied. The " +
+                    "SDK still runs, on the defaults bundled in its own AAR.")
+            } else {
+                println("Skipping missing legacy file:${target.path}")
+            }
+
+            return
+        }
+
+        println("Reading file ${target.path}")
+        def advConfigData = jsonSlurper.parse(advConfigFile)
+        advConfigData.putAll(overrides)
+        // Pretty-printed to match how updateLayoutConfig writes its file, and so an SDK
+        // upgrade that ships a reformatted asset does not produce a whole-file diff.
+        advConfigFile.text = JsonOutput.prettyPrint(JsonOutput.toJson(advConfigData))
+        println("Updating:${target.path}")
+    }
+}
+
+def updateEOCoreBasicConfig(mp, json) {
+    def propertiesFile = "$mp/src/main/assets/EOCoreBasicConfig.properties"
+    FileInputStream _file = new FileInputStream(propertiesFile);
+    Properties properties = new Properties();
+    properties.load(_file);
+    _file.close();
+
+    FileOutputStream out = new FileOutputStream(propertiesFile);
+
+    json.each { key, value ->
+        if(key != "Connect"){ return }
+
+        println("Update/Add the following key/values:")
+        value.each { config_key, config_value ->
+            if(config_value.getClass() != java.lang.String
+            && config_value.getClass() != java.lang.Boolean
+            && config_value.getClass() != java.lang.Integer){
+                return
+            }
+            // Just update the following items
+            if (config_key == "LoggingLevel" ||
+                config_key == "DisplayLogging" ||
+                config_key == "PersistLocalCache" ||
+                config_key == "CachingLevel" ||
+                config_key == "PostMessageLevelWiFi" ||
+                config_key == "PostMessageLevelCellular" ||
+                config_key == "ManualPostEnabled" ||
+                config_key == "DoPostOnIntervals" ||
+                config_key == "PostMessageTimeInterval") {
+                println(config_key + "=" + config_value)
+                properties.setProperty(config_key, config_value.toString())
+            }
+        }
+    }
+
+    properties.store(out, null);
+    out.close();
+    println("Updating:$propertiesFile")
+}
+
+def updateEOCoreAdvConfig(mp, json) {
+    def eocoreAdvConfigPath = "$mp/src/main/assets/EOCoreAdvancedConfig.json"
+    println("Reading file $eocoreAdvConfigPath")
+    def jsonSlurper = new JsonSlurper()
+    def eocoreAdvConfigData = jsonSlurper.parse(new File(eocoreAdvConfigPath))
+
+    json.each { key, value ->
+        if(key != "Connect"){ return }
+
+        value.each { config_key, config_value ->
+            if(config_value.getClass() != java.lang.String
+            && config_value.getClass() != java.lang.Boolean
+            && config_value.getClass() != java.lang.Integer){
+                return
+            }
+            // Just update the following items
+            if (config_key == "ApplicationBackgroundTimeInterval" ||
+                config_key == "ApplicationInBackgroundEnabled" ||
+                config_key == "BufferPercent" ||
+                config_key == "CachedFileMaxBytesSize" ||
+                config_key == "CompressPostMessage" ||
+                config_key == "DefaultOrientation" ||
+                config_key == "DisableCookieManager" ||
+                config_key == "MNCMCC" ||
+                config_key == "MaxNumberOfFilesToCache" ||
+                config_key == "MessageVersion" ||
+                config_key == "OrientationDelayNotificationToModules" ||
+                config_key == "OrientationSensorDelay" ||
+                config_key == "PostMessageMaxBytesSize" ||
+                config_key == "PostMessageSocketTimeout" ||
+                config_key == "PostMessageTimeout" ||
+                config_key == "TurnOffCorrectOrientationUpdates" ) {
+                println(config_key + "=" + config_value)
+                eocoreAdvConfigData[config_key] = config_value
+            }
+        }
+    }
+
+    def eocoreAdvConfigFile = new File(eocoreAdvConfigPath)
+    eocoreAdvConfigFile.text = JsonOutput.toJson(eocoreAdvConfigData)
+    println("Updating:$eocoreAdvConfigPath")
+}
+
+def updateGradle(mp, json){
+    def buildGradlePath = "$mp/build.gradle"
+    def buildGradleFile = new File(buildGradlePath)
+    def updatedBuildGradle = buildGradleFile.text
+
+    if (json != null && json.Connect) {
+        def useRelease = json.Connect.useRelease ?: false
+
+        if(json.Connect.AndroidVersion != null) {
+            def connectSDK = "io.github.go-acoustic:connect:"
+            if(json.Connect.AndroidVersion.length() > 0) {
+                connectSDK += json.Connect.AndroidVersion
+            } else {
+                connectSDK += "+"
+            }
+            updatedBuildGradle = updatedBuildGradle.replaceAll(~/io.github.go-acoustic:connect:(\+|\d+\.\d+\.\d+(-beta)?)/, connectSDK)
+        }
+
+        if (useRelease) {
+            project.configurations.all {
+                resolutionStrategy {
+                    componentSelection {
+                        all { selection ->
+                            // Exempt the eocore artifact from beta rejection.
+                            // Full Maven coordinate: io.github.go-acoustic:eocore
+                            // (verified on Maven Central — the POM declares
+                            // <groupId>io.github.go-acoustic</groupId> +
+                            // <artifactId>eocore</artifactId>, so candidate.module is
+                            // literally 'eocore').
+                            // Unlike the other go-acoustic artifacts, eocore's RELEASE
+                            // line carries a `-beta` suffix — Maven Central lists
+                            // 2.1.24-beta as <release>/<latest>, and the release
+                            // connect:11.0.13 → tealeaf:10.4.28 chain pins eocore
+                            // transitively to that version. Without this carve-out the
+                            // blanket `-beta` reject would drop a legitimate release
+                            // artifact and break every useRelease=true build.
+                            if (selection.candidate.group == 'io.github.go-acoustic' &&
+                                selection.candidate.module != 'eocore' &&
+                                selection.candidate.version.endsWith('-beta')) {
+                                selection.reject("useRelease is true — rejecting beta version ${selection.candidate.version}")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    buildGradleFile.text = updatedBuildGradle
+    println("Updating:$buildGradlePath")
+}
+
+try {
+    // Resolve the SDK's android/ directory WITHOUT relying on a Gradle
+    // subproject named ':react-native-acoustic-connect'. RN 0.82 + new
+    // architecture does not guarantee that autolinking registers third-party
+    // libraries as named Gradle subprojects, so `project(':...')` can throw
+    // "Project with path ... could not be found" during sync. Resolving the
+    // package via Node (the same mechanism the injected `apply from:` entry
+    // point uses) works regardless of how/whether the library was autolinked.
+    def sdkPackageJson = ["node", "--print", "require.resolve('react-native-acoustic-connect/package.json')"]
+        .execute(null, project.rootDir).text.trim()
+    def module_path = new File(sdkPackageJson).getParentFile().getAbsolutePath() + "/android"
+
+    println("**Acoustic Integration***********************************************************************")
+    println("Executing $module_path/config.gradle")
+    println("Step 1:")
+    def configJSONData = getConfigJSON()
+    println("Step 2:")
+    updateTealeafBasicConfig(module_path, configJSONData)
+    println("Step 3:")
+    updateConnectBasicConfig(module_path, configJSONData)
+    println("Step 4:")
+    // The app's own assets dir, used only to warn when it shadows what we write.
+    def appAssetsDir = new File(project.rootDir, "app/src/main/assets")
+    updateLayoutConfig(module_path, configJSONData, appAssetsDir.exists() ? appAssetsDir : null)
+    println("Step 5:")
+    updateAdvConfig(module_path, configJSONData)
+    println("Step 6:")
+    updateEOCoreBasicConfig(module_path, configJSONData)
+    println("Step 7:")
+    updateEOCoreAdvConfig(module_path, configJSONData)
+    println("Step 8:")
+    updateGradle(module_path, configJSONData)
+    println("*********************************************************************************************")
+} catch (FileNotFoundException e) {
+    e.printStackTrace()
+} catch (IOException e) {
+    e.printStackTrace()
+}

@@ -19,3 +19,35 @@ buildscript {
 }
 
 apply plugin: "com.facebook.react.rootproject"
+
+// Run the SDK module's JVM unit tests on JDK 21.
+//
+// Why: the Connect Android SDK ships Java 21 bytecode (class file major 65) from
+// 11.0.15-beta onward, and `android/build.gradle` resolves that dependency
+// dynamically, so `HybridAcousticConnectRNTest` loads those classes directly.
+// On an older JVM every test in the class dies at the first line that touches
+// the SDK (`mockkObject(Connect)`) with UnsupportedClassVersionError. Verified:
+// all 23 pass on 21, and jacocoDebugUnitTestReport (JaCoCo 0.8.13) is happy too.
+//
+// Why only the test JVM, and why here rather than in android/build.gradle:
+//   - Compilation does not need 21. javac and kotlinc on 17 read major-65
+//     classpath entries without complaint, and D8 dexes them — a JDK 17
+//     `assembleDebug` against the same AAR succeeds. Only loading the classes
+//     in a JVM needs a matching runtime.
+//   - `android/build.gradle` is published (see package.json `files`) and is
+//     compiled inside the consumer's Gradle build. A toolchain declared there
+//     becomes a JDK 21 requirement for every consumer, above React Native
+//     0.82's own Java 17 baseline — and we cannot ship them the settings-level
+//     foojay resolver to satisfy it. Keeping this in the (unpublished) example
+//     build leaves the consumer contract untouched.
+subprojects { sp ->
+  sp.plugins.withId('com.android.library') {
+    if (sp.name == 'react-native-acoustic-connect') {
+      sp.tasks.withType(Test).configureEach {
+        javaLauncher = sp.extensions
+          .getByType(JavaToolchainService)
+          .launcherFor { languageVersion = JavaLanguageVersion.of(21) }
+      }
+    }
+  }
+}

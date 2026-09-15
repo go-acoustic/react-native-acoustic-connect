@@ -1,5 +1,14 @@
 pluginManagement { includeBuild("../../node_modules/@react-native/gradle-plugin") }
-plugins { id("com.facebook.react.settings") }
+// The foojay resolver lets Gradle download the JDK a toolchain asks for instead
+// of requiring it preinstalled, so the JDK 21 unit-test toolchain configured in
+// build.gradle works on any machine and any CI agent without JAVA_HOME setup.
+//
+// Must be 1.0.0 or newer: 0.10.0 fails on Gradle 9 at configuration time with a
+// bare `> IBM_SEMERU` and no further context.
+plugins {
+  id("com.facebook.react.settings")
+  id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
 extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autolinkLibrariesFromCommand() }
 rootProject.name = 'AcousticConnectRNExample'
 include ':app'

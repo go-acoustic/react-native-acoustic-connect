@@ -19,6 +19,7 @@ namespace margelo::nitro::acousticconnectrn { struct PushPermissionResult; }
 #include "HybridAcousticConnectRNSpec.hpp"
 #include "PushErrorInfo.hpp"
 #include "PushPermissionResult.hpp"
+#include <NitroModules/AnyMap.hpp>
 #include <NitroModules/ArrayBuffer.hpp>
 #include <NitroModules/Null.hpp>
 #include <NitroModules/Promise.hpp>

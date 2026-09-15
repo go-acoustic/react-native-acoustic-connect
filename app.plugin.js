@@ -9,7 +9,7 @@
 // The plugin composition is defined in plugin/src/index.ts and compiled to
 // plugin/build/index.js (CommonJS) by `npm run build:plugin`.
 //
-// To add a new mod (e.g. withConnectNCE from CA-143488), extend the `mods`
-// array in plugin/src/index.ts — do not modify this shim.
+// To add a new mod (e.g. a notification-content-extension mod), extend the
+// `mods` array in plugin/src/index.ts — do not modify this shim.
 
 module.exports = require('./plugin/build/index').default

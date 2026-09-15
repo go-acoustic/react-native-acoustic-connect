@@ -62,3 +62,58 @@ where the fix is already upstream.
 #   debug(`startSession: ${pairRecord}`);  ->  debug('startSession');
 npx patch-package expo/@expo/cli
 ```
+
+## `expo-modules-core+55.0.25.patch` and `react-native-reanimated+4.2.1.patch`
+
+**What they fix:** `npx expo prebuild --platform android` followed by
+`./gradlew :app:assembleDebug` fails while linking native code:
+
+```
+> Task :expo-modules-core:buildCMakeDebug[arm64-v8a] FAILED
+C/C++: ninja: error: '.../react-native-worklets/android/build/intermediates/cmake/debug/obj/arm64-v8a/libworklets.so',
+  needed by '.../libexpo-modules-core.so', missing and no known rule to make it
+```
+
+`react-native-reanimated` fails the same way for `libreanimated.so`.
+
+**Whose bug it is:** **`expo-modules-core` and `react-native-reanimated`, not the
+Acoustic Connect SDK.** Both hardcode the *legacy* AGP path for worklets'
+native library:
+
+```cmake
+"${REACT_NATIVE_WORKLETS_DIR}/android/build/intermediates/cmake/${BUILD_TYPE}/obj/${ANDROID_ABI}/libworklets.so"
+```
+
+AGP 8 moved CMake objects to `build/intermediates/cxx/<BuildType>/<hash>/obj/<abi>/`,
+so that directory is never populated. `libworklets.so` *is* built — it just lives
+somewhere else, and the `<hash>` segment means no hardcoded path can reach it.
+
+**The fix:** consume worklets through the prefab package that AGP already
+generates. `react-native-worklets` sets `prefabPublishing true`, and AGP writes a
+`react-native-workletsConfig.cmake` — carrying the correct `IMPORTED_LOCATION` —
+into each consumer's `CMAKE_FIND_ROOT_PATH`. Both patches replace the hardcoded
+path with `find_package(react-native-worklets REQUIRED CONFIG)`. This is the
+mechanism `reanimated` already uses for `fbjni` and `ReactAndroid` in the same
+CMakeLists, and the one worklets' own `fix-prefab.gradle` exists to enable.
+
+**Why patch instead of upgrade:** `expo-modules-core@55.0.25` is the newest 55.x
+and still carries the hardcoded path, so no version available to Expo SDK 55
+fixes it. (`react-native-reanimated` has newer releases, but Expo SDK 55 pins
+4.2.1, and bumping it alone would not fix `expo-modules-core`.)
+
+**When to remove:** when this sample moves to an Expo SDK whose
+`expo-modules-core` resolves worklets via prefab (or otherwise supports AGP 8
+layouts), and to a `react-native-reanimated` that does the same. Verify by
+deleting a patch, reinstalling, and running
+`npx expo prebuild --platform android --clean && cd android && ./gradlew :app:assembleDebug`.
+
+**To regenerate:**
+
+```bash
+# edit the two CMake files under node_modules, then:
+npx patch-package expo-modules-core --include 'android/cmake/main\.cmake'
+npx patch-package react-native-reanimated --include 'android/CMakeLists\.txt'
+```
+
+The `--include` flag matters: without it, `patch-package` also diffs Gradle/CMake
+build output left in `node_modules` and produces multi-megabyte patches.

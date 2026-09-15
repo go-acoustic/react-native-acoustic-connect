@@ -24,6 +24,7 @@ namespace margelo::nitro::acousticconnectrn { struct PushPermissionResult; }
 #include <NitroModules/Null.hpp>
 #include <optional>
 #include <unordered_map>
+#include <NitroModules/AnyMap.hpp>
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/ArrayBuffer.hpp>
 #include <NitroModules/ArrayBufferHolder.hpp>
@@ -160,7 +161,7 @@ namespace margelo::nitro::acousticconnectrn {
       auto __value = std::move(__result.value());
       return __value;
     }
-    inline bool logSignal(const std::unordered_map<std::string, std::variant<bool, std::string, double>>& values, double level) override {
+    inline bool logSignal(const std::shared_ptr<AnyMap>& values, double level) override {
       auto __result = _swiftPart.logSignal(values, std::forward<decltype(level)>(level));
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());

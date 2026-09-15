@@ -1,0 +1,389 @@
+// Copyright (C) 2024 Acoustic, L.P. All rights reserved.
+//
+// NOTICE: This file contains material that is confidential and proprietary to
+// Acoustic, L.P. and/or other developers. No license is granted under any intellectual or
+// industrial property rights of Acoustic, L.P. except as may be provided in an agreement with
+// Acoustic, L.P. Any unauthorized copying or distribution of content from this file is
+// prohibited.
+//
+//
+//  Created on 5/9/25.
+//
+
+buildscript {
+  repositories {
+    google()
+    mavenCentral()
+  }
+
+  dependencies {
+    classpath "com.android.tools.build:gradle:8.10.0"
+  }
+}
+
+def reactNativeArchitectures() {
+  def value = rootProject.getProperties().get("reactNativeArchitectures")
+  return value ? value.split(",") : ["armeabi-v7a", "x86", "x86_64", "arm64-v8a"]
+}
+
+def isNewArchitectureEnabled() {
+  return rootProject.hasProperty("newArchEnabled") && rootProject.getProperty("newArchEnabled") == "true"
+}
+
+apply plugin: "com.android.library"
+apply plugin: 'org.jetbrains.kotlin.android'
+apply plugin: 'jacoco'
+apply from: '../nitrogen/generated/android/AcousticConnectRN+autolinking.gradle'
+
+if (isNewArchitectureEnabled()) {
+  apply plugin: "com.facebook.react"
+}
+
+def getExtOrDefault(name) {
+  return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties["AcousticConnectRN_" + name]
+}
+
+def getExtOrIntegerDefault(name) {
+  return rootProject.ext.has(name) ? rootProject.ext.get(name) : (project.properties["AcousticConnectRN_" + name]).toInteger()
+}
+
+android {
+  namespace = "com.acousticconnectrn"
+
+  ndkVersion = getExtOrDefault("ndkVersion")
+  compileSdkVersion = getExtOrIntegerDefault("compileSdkVersion")
+
+  defaultConfig {
+    minSdkVersion getExtOrIntegerDefault("minSdkVersion")
+    targetSdkVersion getExtOrIntegerDefault("targetSdkVersion")
+    buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", isNewArchitectureEnabled().toString()
+
+    externalNativeBuild {
+      cmake {
+        cppFlags "-frtti -fexceptions -Wall -Wextra -fstack-protector-all"
+        arguments "-DANDROID_STL=c++_shared"
+        abiFilters (*reactNativeArchitectures())
+
+        buildTypes {
+          debug {
+            cppFlags "-O1 -g"
+          }
+          release {
+            cppFlags "-O2"
+          }
+        }
+      }
+    }
+  }
+
+  externalNativeBuild {
+    cmake {
+      path "CMakeLists.txt"
+    }
+  }
+
+  packagingOptions {
+    excludes = [
+        "META-INF",
+        "META-INF/**",
+        "**/libc++_shared.so",
+        "**/libfbjni.so",
+        "**/libjsi.so",
+        "**/libfolly_json.so",
+        "**/libfolly_runtime.so",
+        "**/libglog.so",
+        "**/libhermes.so",
+        "**/libhermes-executor-debug.so",
+        "**/libhermes_executor.so",
+        "**/libreactnative.so",
+        "**/libreactnativejni.so",
+        "**/libturbomodulejsijni.so",
+        "**/libreact_nativemodule_core.so",
+        "**/libjscexecutor.so"
+    ]
+  }
+
+  buildFeatures {
+    buildConfig = true
+    prefab = true
+  }
+
+  buildTypes {
+    release {
+      minifyEnabled false
+    }
+  }
+
+  lintOptions {
+    disable "GradleCompatible"
+  }
+
+  testOptions {
+    unitTests {
+      // Unstubbed android.jar methods return defaults instead of throwing —
+      // needed for the few framework calls Robolectric doesn't cover.
+      returnDefaultValues = true
+      // Robolectric needs the library manifest + resources on the test
+      // classpath.
+      includeAndroidResources = true
+    }
+  }
+
+  // Java 17 — matched to React Native 0.82's own baseline (its Gradle plugin
+  // targets JavaVersion.VERSION_17), so this imposes no requirement a consumer
+  // does not already meet building an RN app. This file is compiled inside the
+  // consumer's Gradle build, so anything raised here becomes their floor: 21
+  // would put us above RN's baseline for no benefit, since the bridge uses no
+  // Java 21 language features. Bytecode level only — deliberately NOT a
+  // toolchain, so a consumer on JDK 21+ is free to build with it.
+  //
+  // Note this is independent of the Connect Android SDK shipping Java 21
+  // bytecode: D8 dexes major-65 classes happily, and a JDK 17 assembleDebug
+  // against that AAR succeeds. Only JVM unit tests that load those classes need
+  // a 21 runtime, which is configured in the (unpublished) example build.
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+
+  // Kept in lockstep with compileOptions above — AGP fails the build with
+  // "Inconsistent JVM-target compatibility" if the Java and Kotlin targets
+  // diverge.
+  kotlinOptions {
+    jvmTarget = '17'
+  }
+
+  sourceSets {
+    main {
+      if (isNewArchitectureEnabled()) {
+        java.srcDirs += [
+          // React Codegen files
+          "${project.buildDir}/generated/source/codegen/java"
+        ]
+      }
+    }
+  }
+}
+
+repositories {
+  mavenCentral()
+  google()
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url="https://s01.oss.sonatype.org/content/groups/staging" }
+
+        maven {
+            // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
+            url="$rootDir/../node_modules/react-native/android"
+        }
+    }
+}
+
+// Read consumer config at script-evaluation time so the right Connect Android
+// artifact is selected without depending on config.gradle's text-rewriting
+// pass (which only matches the analytics artifact name). Both `PushEnabled`
+// and `AndroidVersion` are read directly here:
+//   - `PushEnabled` picks between the analytics-only and push-fcm artifacts.
+//   - `AndroidVersion` (when set) pins the version against the active artifact.
+import groovy.json.JsonSlurper
+def acousticConfigFile = new File("$rootDir/../ConnectConfig.json")
+def acousticConfig = acousticConfigFile.exists()
+  ? new JsonSlurper().parse(acousticConfigFile)
+  : [Connect: [:]]
+def acousticPushEnabled = (acousticConfig.Connect?.PushEnabled ?: false).toString().toBoolean()
+def acousticVersionPin = (acousticConfig.Connect?.AndroidVersion ?: '').trim()
+def acousticVersion = acousticVersionPin.isEmpty() ? '+' : acousticVersionPin
+def acousticArtifact = acousticPushEnabled ? 'connect-push-fcm' : 'connect'
+
+// Connect co-versions `eocore` + `tealeaf` with itself only from 11.0.18-beta
+// onward — and from that release their POM scope is `runtime`, which drops them
+// off the compile classpath (see the companion declarations below).
+//
+// Earlier releases in the supported range ship `tealeaf` on its own 10.4.x line
+// (with eocore arriving transitively through it) at COMPILE scope, so there the
+// companions are both unnecessary AND unresolvable: eocore/tealeaf 11.0.16-beta
+// simply do not exist on Maven Central. Guard on the explicit pin so a consumer
+// who pinned an older Connect keeps building. An empty pin means `+`, which
+// always resolves to the newest (co-versioned) release.
+def acousticCompanionsRequired = true
+if (!acousticVersionPin.isEmpty()) {
+  // Compare only the numeric core, ignoring any -beta/+build qualifier: a
+  // 11.0.18-beta pin must count as >= the 11.0.18 floor. Encoded as one integer
+  // because Groovy's <=> does not compare two ArrayLists.
+  def core = acousticVersionPin.replaceAll(/[-+].*$/, '').tokenize('.')
+  def nums = (0..2).collect { i -> (i < core.size() && core[i].isInteger()) ? core[i].toInteger() : 0 }
+  // Upper bound as well as lower, so that a pin outside the supported range
+  // fails on the `strictly '[11.0.11, 12.0.0)'` constraint in the
+  // `constraints { }` block at the bottom of `dependencies` — which names both
+  // the range and the reason — rather than on an unresolvable companion
+  // coordinate. Verified: without this bound a 12.0.0 pin reported
+  // "Could not find io.github.go-acoustic:eocore:12.0.0", burying the real cause.
+  def pinCode = nums[0] * 1000000 + nums[1] * 1000 + nums[2]
+  acousticCompanionsRequired = pinCode >= 11_000_018 && pinCode < 12_000_000
+}
+println "AcousticConnectRN: companionCompileDeps=$acousticCompanionsRequired (pin='$acousticVersionPin')"
+println "AcousticConnectRN: PushEnabled=$acousticPushEnabled, artifact=io.github.go-acoustic:$acousticArtifact:$acousticVersion"
+
+dependencies {
+  // Provided by the host app at runtime — compileOnly avoids version conflicts
+  //noinspection GradleDynamicVersion
+  compileOnly "com.facebook.react:react-native:+"
+
+  // Provided by the host app via react-native-nitro-modules peer dependency
+  compileOnly project(":react-native-nitro-modules")
+
+  // Connect Android SDK — analytics-only artifact OR push variant, never both.
+  // The push-fcm artifact transitively brings in the core analytics module;
+  // declaring both as direct dependencies would risk duplicate-class errors
+  // and ambiguous version resolution. The selection is structural and gated
+  // at build time by `ConnectConfig.json -> Connect.PushEnabled` — a customer
+  // who didn't opt in for push can't accidentally pull in FCM transitives,
+  // and a customer who did opt in gets the right module without a second
+  // toggle.
+  //noinspection GradleDynamicVersion
+  implementation "io.github.go-acoustic:$acousticArtifact:$acousticVersion"
+
+  // Restore the compile classpath for Connect's internal modules. This bridge
+  // calls into both directly — `com.ibm.eo.EOCore`,
+  // `com.ibm.eo.model.EOMonitoringLevel`, `com.tl.uic.Tealeaf`,
+  // `com.tl.uic.model.ScreenviewType`,
+  // `com.tl.uic.util.{DialogUtil,LayoutUtil,keyboardview.KeyboardView}` — so
+  // with them at `runtime` scope `compileDebugKotlin` fails with ~34
+  // "Unresolved reference 'ibm' / 'tl' / 'EOCore'" errors.
+  //
+  // compileOnly, not implementation: the artifacts still reach the runtime graph
+  // through Connect's own transitive, so declaring them there too would risk a
+  // second, independently-resolved copy.
+  //
+  // Both scopes are required — compileOnly does NOT propagate to the unit-test
+  // compile classpath, and android/src/test imports com.ibm.eo.* as well, so
+  // compileDebugUnitTestKotlin fails without the testCompileOnly pair.
+  //
+  // Correct for BOTH artifact variants. `connect-push-fcm` does not declare
+  // eocore/tealeaf itself — its POM depends on `connect` at compile scope, and
+  // eocore/tealeaf reach the graph through that at `runtime` scope, so the
+  // compile classpath is short of them exactly as in the analytics-only case.
+  // The variants are co-versioned (connect-push-fcm 11.0.18-beta -> connect
+  // 11.0.18-beta -> eocore/tealeaf 11.0.18-beta), so `$acousticVersion` is the
+  // right coordinate either way. Confirmed on debugCompileClasspath with
+  // PushEnabled=true; gating these on `!acousticPushEnabled` would break the
+  // push variant rather than protect it.
+  if (acousticCompanionsRequired) {
+    //noinspection GradleDynamicVersion
+    compileOnly     "io.github.go-acoustic:eocore:$acousticVersion"
+    //noinspection GradleDynamicVersion
+    compileOnly     "io.github.go-acoustic:tealeaf:$acousticVersion"
+    //noinspection GradleDynamicVersion
+    testCompileOnly "io.github.go-acoustic:eocore:$acousticVersion"
+    //noinspection GradleDynamicVersion
+    testCompileOnly "io.github.go-acoustic:tealeaf:$acousticVersion"
+  }
+
+  // Firebase Cloud Messaging — required by the push variant. The
+  // `connect-push-fcm` AAR calls `com.google.firebase.messaging.*`
+  // (its `FCMPushService` extends `FirebaseMessagingService`) but its
+  // published POM does NOT declare firebase-messaging, so the transitive
+  // never arrives. Without it the push classes fail to link at runtime and
+  // push silently stays inactive — the bridge logs
+  // `connect-push-fcm on classpath: false` and no FCM token is ever
+  // requested. Gated by the same `PushEnabled` flag so analytics-only
+  // builds pull zero Firebase. The host app still supplies its own
+  // `google-services.json` and applies the `com.google.gms.google-services`
+  // plugin (the bare-workflow demo does this conditionally). The BoM aligns
+  // messaging + its installations/datatransport transitives.
+  if (acousticPushEnabled) {
+    implementation platform('com.google.firebase:firebase-bom:33.7.0')
+    implementation 'com.google.firebase:firebase-messaging'
+  }
+
+  // Version range enforced by the RN bridge. Lower bound prevents downgrades
+  // to releases that lack APIs this bridge calls; upper bound prevents a
+  // future 12.x major (with potentially breaking changes) from being picked
+  // up automatically by Gradle's `+` resolver. Both halves are `strictly` so
+  // an attempted override via `Connect.AndroidVersion` fails loudly at
+  // resolution time rather than surfacing as a runtime `ClassNotFoundException`
+  // or method-missing error. Constraints are declared for both artifact
+  // names — Gradle only enforces the one that resolves into the graph, so
+  // the unused entry is inert.
+  constraints {
+    implementation('io.github.go-acoustic:connect') {
+      version { strictly '[11.0.11, 12.0.0)' }
+      because 'AcousticConnectRN requires Connect Android SDK in [11.0.11, 12.0.0). Bump the upper bound after validating compatibility with a new major.'
+    }
+    implementation('io.github.go-acoustic:connect-push-fcm') {
+      version { strictly '[11.0.11, 12.0.0)' }
+      because 'connect-push-fcm tracks the same release line as the core connect artifact.'
+    }
+  }
+}
+
+if (isNewArchitectureEnabled()) {
+  react {
+    jsRootDir = file("../src/")
+    libraryName = "AcousticConnectRN"
+    codegenJavaPackageName = "com.acousticconnectrn"
+  }
+}
+
+// JVM unit tests (android/src/test) — run from a consumer app's gradle, e.g.
+//   cd example/android && ./gradlew :react-native-acoustic-connect:testDebugUnitTest
+// No emulator: testDebugUnitTest does not trigger externalNativeBuild/CMake.
+// RN + nitro are compileOnly above (provided by the host app), so they are
+// re-declared for the test runtime classpath; the Connect SDK is already
+// `implementation` and flows to tests automatically. Note: nitro's Promise is
+// JNI-backed, so the push*/logIdentity Promise-returning methods cannot be
+// exercised in JVM tests — they are covered by the sample-build CI gates.
+dependencies {
+  testImplementation "junit:junit:4.13.2"
+  testImplementation "io.mockk:mockk:1.13.16"
+  // @Config(sdk = [35]) in the tests until Robolectric supports SDK 36.
+  testImplementation "org.robolectric:robolectric:4.14.1"
+  // Deliberately `+`, matching the compileOnly declaration above: this
+  // coordinate never resolves from a repository — the RN Gradle plugin
+  // substitutes it with the HOST app's `com.facebook.react:react-android`
+  // at resolution time, so tests always run against the same RN version the
+  // consuming build uses. Pinning (e.g. `0.82.1`) would name an artifact
+  // version that doesn't exist on Maven for RN >= 0.72 and adds only false
+  // precision; without the substitution both forms fail loudly.
+  //noinspection GradleDynamicVersion
+  testImplementation "com.facebook.react:react-native:+"
+  testImplementation project(":react-native-nitro-modules")
+}
+
+// Coverage for the JVM unit tests. Robolectric needs
+// includeNoLocationClasses to attribute coverage to instrumented classes.
+tasks.withType(Test).configureEach {
+  jacoco {
+    includeNoLocationClasses = true
+    excludes = ['jdk.internal.*']
+  }
+}
+
+// XML (parsed by the Jenkins Slack summary) + HTML (archived artifact)
+// coverage report over the debug unit tests. Registered afterEvaluate
+// because AGP creates the variant test task then. Generated nitro bindings
+// are excluded — they are codegen output, not logic this module owns.
+project.afterEvaluate {
+  tasks.register('jacocoDebugUnitTestReport', JacocoReport) {
+    dependsOn 'testDebugUnitTest'
+    group = 'verification'
+    description = 'JaCoCo coverage report for the debug JVM unit tests.'
+
+    def generatedExcludes = ['com/margelo/nitro/**', '**/BuildConfig*']
+    classDirectories.setFrom(files(
+      fileTree(dir: "${buildDir}/tmp/kotlin-classes/debug", excludes: generatedExcludes),
+      fileTree(dir: "${buildDir}/intermediates/javac/debug", includes: ['**/classes/**'], excludes: generatedExcludes)
+    ))
+    sourceDirectories.setFrom(files("${projectDir}/src/main/java"))
+    executionData.setFrom(fileTree(dir: buildDir, includes: ['jacoco/testDebugUnitTest.exec']))
+
+    reports {
+      xml.required = true
+      html.required = true
+    }
+  }
+}

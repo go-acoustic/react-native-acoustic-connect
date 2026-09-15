@@ -23,7 +23,7 @@ public protocol HybridAcousticConnectRNSpec_protocol: HybridObject {
   func getStringItemForKey(theDefault: String, key: String, moduleName: String) throws -> Variant_NullType_String?
   func getNumberItemForKey(theDefault: Double, key: String, moduleName: String) throws -> Double
   func logCustomEvent(eventName: String, values: Dictionary<String, Variant_Bool_String_Double>, level: Double) throws -> Bool
-  func logSignal(values: Dictionary<String, Variant_Bool_String_Double>, level: Double) throws -> Bool
+  func logSignal(values: AnyMap, level: Double) throws -> Bool
   func logExceptionEvent(message: String, stackInfo: String, unhandled: Bool) throws -> Bool
   func logLocation() throws -> Bool
   func logLocationWithLatitudeLongitude(latitude: Double, longitude: Double, level: Double) throws -> Bool

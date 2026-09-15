@@ -61,7 +61,7 @@
                     "ScreenShot": false
                 },
                 "GlobalScreenSettings": {
-                    "CaptureLayoutDelay": 1,
+                    "CaptureLayoutDelay": 500,
                     "CaptureLayoutOn": 2,
                     "CaptureScreenVisits": false,
                     "CaptureScreenshotOn": 2,
@@ -80,7 +80,8 @@
                             
                         ],
                         "MaskValueList": [
-                            
+                            "^SECRET-.*$",
+                            "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
                         ],
                         "Sensitive": {
                             "capitalCaseAlphabet": "X",
@@ -146,7 +147,7 @@
                     "ScreenShot": false
                 },
                 "GlobalScreenSettings": {
-                    "CaptureLayoutDelay": 1,
+                    "CaptureLayoutDelay": 500,
                     "CaptureLayoutOn": 2,
                     "CaptureScreenVisits": false,
                     "CaptureScreenshotOn": 2,
@@ -165,7 +166,8 @@
                             
                         ],
                         "MaskValueList": [
-                            
+                            "^SECRET-.*$",
+                            "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
                         ],
                         "Sensitive": {
                             "capitalCaseAlphabet": "X",

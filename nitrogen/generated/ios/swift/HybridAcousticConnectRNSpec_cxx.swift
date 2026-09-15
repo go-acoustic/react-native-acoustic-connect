@@ -296,32 +296,9 @@ open class HybridAcousticConnectRNSpec_cxx {
   }
   
   @inline(__always)
-  public final func logSignal(values: bridge.std__unordered_map_std__string__std__variant_bool__std__string__double__, level: Double) -> bridge.Result_bool_ {
+  public final func logSignal(values: margelo.nitro.SharedAnyMap, level: Double) -> bridge.Result_bool_ {
     do {
-      let __result = try self.__implementation.logSignal(values: { () -> Dictionary<String, Variant_Bool_String_Double> in
-        var __dictionary = Dictionary<String, Variant_Bool_String_Double>(minimumCapacity: values.size())
-        let __keys = bridge.get_std__unordered_map_std__string__std__variant_bool__std__string__double___keys(values)
-        for __key in __keys {
-          let __value = bridge.get_std__unordered_map_std__string__std__variant_bool__std__string__double___value(values, __key)
-          __dictionary[String(__key)] = { () -> Variant_Bool_String_Double in
-            let __variant = bridge.std__variant_bool__std__string__double_(__value)
-            switch __variant.index() {
-              case 0:
-                let __actual = __variant.get_0()
-                return .first(__actual)
-              case 1:
-                let __actual = __variant.get_1()
-                return .second(String(__actual))
-              case 2:
-                let __actual = __variant.get_2()
-                return .third(__actual)
-              default:
-                fatalError("Variant can never have index \(__variant.index())!")
-            }
-          }()
-        }
-        return __dictionary
-      }(), level: level)
+      let __result = try self.__implementation.logSignal(values: AnyMap(withCppPart: values), level: level)
       let __resultCpp = __result
       return bridge.create_Result_bool_(__resultCpp)
     } catch (let __error) {

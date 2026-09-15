@@ -79,6 +79,7 @@
         "!android/src/test/**",
         "android/config.gradle",
         "android/src/main/assets/**",
+        "!android/src/main/assets/ConnectLayoutConfig.json",
         "ios/**/*.h",
         "ios/**/*.m",
         "ios/**/*.mm",
@@ -91,16 +92,12 @@
         "plugin/swift",
         "plugin/src",
         "cli",
+        "!cli/__tests__/**",
         "ConnectConfig.example.json",
         "*.podspec",
         "README.md",
         "CHANGELOG.md",
-        "scripts",
-        "Examples/SampleUI/**/*",
-        "!Examples/SampleUI/node_modules/**",
-        "!Examples/SampleUI/temp/**",
-        "!Examples/SampleUI/logs/**",
-        "!Examples/SampleUI/android/.gradle/**"
+        "scripts"
     ],
     "homepage": "https://github.com/go-acoustic/react-native-acoustic-connect",
     "keywords": [
@@ -229,7 +226,7 @@
     "source": "src/index",
     "summary": "react-native ios android tealeaf connect cxa wxca er enhanced-replay",
     "types": "./lib/typescript/src/index.d.ts",
-    "version": "19.0.11",
+    "version": "19.0.28",
     "workspaces": [
         "example",
         "Examples/bare-workflow"

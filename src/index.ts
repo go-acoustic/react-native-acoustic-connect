@@ -41,4 +41,9 @@ try {
 }
 
 export { Connect, TLTRN, KeyboardListener, DialogListener, useDialogTracking, DialogDebugger, withAcousticAutoDialog }
+
+// Re-exported so callers can name a `logSignal` payload without importing
+// from `react-native-nitro-modules` — the spec aliases nitro's AnyMap only
+// because that is the one type nitrogen accepts for arbitrary JSON.
+export type { SignalValues } from './specs/react-native-acoustic-connect.nitro'
 export default AcousticConnectRN

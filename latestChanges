@@ -21,6 +21,14 @@ Bug Fixes
 - Fix version update script for Android
 - Expo: pass the dev-client URI scheme to `expo start` so the QR / deep link connects when the push NSE/NCE extensions are present
 - bare-workflow: drop the CocoaPods git Specs source from the Podfile so a cold `pod install` no longer syncs the multi-GB Specs repo
+- Android: restore the Tealeaf and EOCore classes on the compile classpath after the Connect Android SDK moved them to `runtime` scope, which stopped the bridge compiling
+- Android: unwrap Nitro variant values in the bridge so signal and event payloads reach the native SDK with their original types instead of being flattened to strings
+- Apply the `layout` block from `ConnectConfig.json` on both iOS and Android
+- Apply advanced configuration to the file the Connect SDK actually reads, so advanced settings in `ConnectConfig.json` take effect
+- Identity signals: the default method attribute now follows the signal type — `loggedIn` sends `loginMethod`, `accountRegistered` sends `registrationMethod`. Previously `loggedIn` signals defaulted to `registrationMethod` and were discarded by server-side schema validation
+- Expo sample: resolve `react-native-worklets` through its prefab package so the Android build succeeds under Android Gradle Plugin 8, which relocated the CMake output directory. Sample-only — nothing here ships in the npm package
+- Screen layout capture now honours `CaptureLayoutDelay` from `ConnectConfig.json`. The React Native wrapper previously always captured with no delay, so the setting had no effect on either platform and a capture triggered from React Navigation fired at the *start* of the screen transition, producing half-rendered layouts in session replay
+- iOS: the delay argument to `logScreenLayout` is now milliseconds, matching Android and `CaptureLayoutDelay`. It was previously handed to the native API unconverted, where the unit is seconds — so a request for a 300 ms delay waited 300 seconds. If you passed a positive delay on iOS and compensated for this, drop the compensation
 
 Improvements:
 
@@ -29,11 +37,18 @@ Improvements:
 - Android: resolve react-native version conflicts from transitive Gradle deps
 - iOS: verbose Connect/Tealeaf/EOCore native logging when `useRelease:false`, surfaced in the Xcode console for QA and support
 - CI: Expo iOS + Android sample-build gates
+- `logSignal` accepts nested JSON objects and arrays in `values`, so structured payloads no longer need flattening before they are sent
+- `logSignal`: a top-level number in the payload now reaches the collector on Android as well as iOS, from Connect Android 11.0.24-beta — the version whose signal serializer gained a number branch. The Android dependency floats to the newest published build unless you pin it, so most integrations pick this up on their next build; nesting the number one level down stays portable if you pin an older one
+- Sample apps: stable selectors on the demo screens for test automation
+- Sample apps: `bare-workflow` and `expo` now ship a committed `Gemfile.lock`, and all sample Gemfiles hold `connection_pool` on the 2.x line so `bundle install` resolves on Ruby 3.1 as well as 3.3. Previously a cold `bundle install` picked up `connection_pool` 3.x (transitively, via `activesupport`), which requires Ruby >= 3.2 and aborted the install. Sample-only — nothing here ships in the npm package
+- The default `CaptureLayoutDelay` is now 500 ms on both platforms, which clears a typical screen-transition animation. The shipped `ConnectConfig.json` templates carried 1 ms, and an integration with no layout block inherited each native SDK's own default — 1 ms on iOS against 500 ms on Android — so the two platforms captured at different points in the transition
+- `TLTRN.logScreenLayout(name)` accepts an optional second argument to override the configured delay for a single call: `0` captures immediately, a positive value waits that many milliseconds. Useful for a screen whose content arrives asynchronously, where the capture is best triggered once the data is on screen rather than by raising the delay for every screen
+- The npm package no longer ships the `SampleUI` demo app. It targeted React Native 0.76.9 — below this SDK's 0.82 floor — so it could not build against the package that carried it. This removes 326 files (~3.5 MB unpacked) from the tarball and changes nothing about the SDK itself. The maintained samples are `bare-workflow` (bare React Native) and `expo` (Expo SDK 55+), both published to the sample repository
 
 Our environment for this release:
 
-- Xcode 26.2
-- MacOS 26.0.1
+- Xcode 26.4.1
+- MacOS 26.3
 - iOS 15.1 to 26.x
 - Supported architectures:
 	- simulator

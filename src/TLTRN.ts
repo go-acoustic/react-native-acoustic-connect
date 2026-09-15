@@ -54,7 +54,7 @@ class TLTRN {
   static displayDebug = false;
 
   static myTimer = {
-    handle: null as NodeJS.Timeout | null,
+    handle: null as ReturnType<typeof setInterval> | null,
     started: 0,
     time: 1000,
     /**
@@ -110,11 +110,44 @@ class TLTRN {
     return result;
   };
 
-  static logScreenLayout = (name: string | undefined) => {
+  /**
+   * Sentinel for the native `delay` argument meaning "use the
+   * `CaptureLayoutDelay` configured for this screen". Both bridges resolve it
+   * from the layout config; anything >= 0 is an explicit delay in
+   * milliseconds.
+   */
+  static USE_CONFIGURED_CAPTURE_DELAY = -1;
+
+  /**
+   * Captures the layout of the current screen.
+   *
+   * @param name    Screen name to associate with the capture.
+   * @param delayMs Milliseconds to wait before capturing. Omit it to use the
+   *   `CaptureLayoutDelay` from `ConnectConfig.json` — that is the setting to
+   *   reach for when a screen transition animation is still running and the
+   *   capture would otherwise catch a half-rendered screen. Pass `0` to
+   *   capture immediately.
+   *
+   * Passing no delay used to send a hardcoded `0`, which made
+   * `CaptureLayoutDelay` inert for React Native apps and fired the capture at
+   * the *start* of the transition rather than after it.
+   *
+   * @returns With no `delayMs` — the normal case — only that the capture was
+   *   **scheduled**, not that it produced a layout message. The native
+   *   deferred overload dispatches and returns immediately, so anything that
+   *   goes wrong once it runs (no view controller resolved, layout capture
+   *   gated off by config) cannot be reflected here; those surface in logcat
+   *   / os_log instead. Pass `0` and the value describes the capture itself,
+   *   at the cost of capturing mid-transition.
+   */
+  static logScreenLayout = (name: string | undefined, delayMs?: number) => {
     TLTRN.currentScreen = name || '';
     let result = false
     try {
-      result = AcousticConnectRN.logScreenLayout(TLTRN.currentScreen, 0);
+      result = AcousticConnectRN.logScreenLayout(
+        TLTRN.currentScreen,
+        delayMs === undefined ? TLTRN.USE_CONFIGURED_CAPTURE_DELAY : delayMs
+      );
     } catch (error: Error | any) {
       console.log('LogScreenLayout error: ', error.message);
     }
@@ -168,8 +201,86 @@ class TLTRN {
     return result;
   };
   
+  /**
+   * Keys already warned about, so a call site inside a render or a list loop
+   * warns once rather than on every pass.
+   */
+  static warnedNestedValueSites = new Set<string>();
+
+  /**
+   * Cap on {@link warnedNestedValueSites}.
+   *
+   * The site key includes the nested keys' names, so a payload built from an
+   * API response — per-record ids, timestamps — makes every call a distinct
+   * site, and the set would then grow for the life of the session. By the
+   * hundredth distinct shape the warning has made its point, so it stops
+   * instead of accumulating: bounded memory matters more than warning about
+   * shape 101.
+   */
+  static WARNED_NESTED_VALUE_SITES_MAX = 100;
+
+  /**
+   * Warns when a flat-values payload carries a nested object or array.
+   *
+   * `logCustomEvent`/`logDialogCustomEvent` are typed for flat scalars, but
+   * TypeScript types are erased at runtime: a payload built from an API
+   * response, widened through `any`, or passed from untyped JS reaches the
+   * bridge with its nesting intact. Both platforms then reshape it silently —
+   * Android's SDK chain is typed `HashMap<String, String>` end to end, so a
+   * nested value is stringified into whatever its `toString()` yields — and
+   * the call still returns `true`. `logSignal` is the API that carries nested
+   * JSON on both platforms.
+   *
+   * Warning only: the payload is passed through untouched, so this changes no
+   * behaviour and cannot break a caller who is relying on today's reshaping.
+   *
+   * @param api    Name of the calling API, for the message.
+   * @param values The payload about to cross the bridge.
+   */
+  static warnOnNestedValues = (api: string, values: Record<string, unknown>) => {
+    if (values == null || typeof values !== 'object') {
+      return;
+    }
+    const nested = Object.keys(values).filter((key) => {
+      const value = (values as Record<string, unknown>)[key];
+      return typeof value === 'object' && value !== null;
+    });
+    if (nested.length === 0) {
+      return;
+    }
+    const site = `${api}:${nested.sort().join(',')}`;
+    if (TLTRN.warnedNestedValueSites.has(site)) {
+      return;
+    }
+    if (TLTRN.warnedNestedValueSites.size >= TLTRN.WARNED_NESTED_VALUE_SITES_MAX) {
+      return;
+    }
+    TLTRN.warnedNestedValueSites.add(site);
+    console.warn(
+      `TLTRN.${api}: nested value(s) [${nested.sort().join(', ')}] will be flattened — ` +
+        `${api} carries flat scalars only, and the native SDKs reshape anything else ` +
+        `without reporting it. Use logSignal for nested JSON; it is carried intact on ` +
+        `both platforms.`
+    );
+  };
+
+  /**
+   * Logs a custom event.
+   *
+   * @param eventName Event name, as it appears in the posted JSON.
+   * @param values    Flat key/value pairs. Nested objects and arrays are NOT
+   *   supported here and are reshaped by the native SDKs — use `logSignal`
+   *   for nested JSON.
+   * @param level     Monitoring level for this event.
+   * @returns Whether the native SDK **accepted the event for delivery** —
+   *   not whether the collector received it. The event is queued locally and
+   *   posted later, so no return value from this call can attest to delivery;
+   *   a `true` here means only that the SDK took the event. A `false` is also
+   *   logged natively (logcat / os_log) so the rejection is visible.
+   */
   static logCustomEvent = async (eventName: string, values: Record<string, string | number | boolean>, level: number) => {
     let result = false
+    TLTRN.warnOnNestedValues('logCustomEvent', values);
     try {
       result = AcousticConnectRN.logCustomEvent(eventName, values, level);
     } catch (error: Error | any) {
@@ -209,8 +320,15 @@ class TLTRN {
     return result;
   };
 
+  /**
+   * Logs a custom event tied to a dialog.
+   *
+   * Same flat-values contract and same return-value meaning as
+   * {@link logCustomEvent} — it routes to the same native API.
+   */
   static logDialogCustomEvent = async (dialogId: string, eventName: string, values: Record<string, string | number | boolean>) => {
     let result = false
+    TLTRN.warnOnNestedValues('logDialogCustomEvent', values);
     try {
       result = AcousticConnectRN.logDialogCustomEvent(dialogId, eventName, values);
     } catch (error: Error | any) {
@@ -356,7 +474,10 @@ class TLTRN {
   static logTeal = async () => {
     try {
       TLTRN.isLoggingData = 1;
-      var res = await AcousticConnectRN.logScreenLayout(TLTRN.currentScreen, -1);
+      var res = await AcousticConnectRN.logScreenLayout(
+        TLTRN.currentScreen,
+        TLTRN.USE_CONFIGURED_CAPTURE_DELAY
+      );
       var dict = { ReactLayoutTime: TLTRN.totalRenderTime };
       var result = await AcousticConnectRN.logCustomEvent("ReactPlugin", dict, 1);
       if (TLTRN.displayDebug) {

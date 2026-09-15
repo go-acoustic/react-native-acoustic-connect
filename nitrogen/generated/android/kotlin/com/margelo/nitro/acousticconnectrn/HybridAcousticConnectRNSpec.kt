@@ -11,6 +11,7 @@ import androidx.annotation.Keep
 import com.facebook.jni.HybridData
 import com.facebook.proguard.annotations.DoNotStrip
 import com.margelo.nitro.core.NullType
+import com.margelo.nitro.core.AnyMap
 import com.margelo.nitro.core.Promise
 import com.margelo.nitro.core.ArrayBuffer
 import com.margelo.nitro.core.HybridObject
@@ -73,7 +74,7 @@ abstract class HybridAcousticConnectRNSpec: HybridObject() {
   
   @DoNotStrip
   @Keep
-  abstract fun logSignal(values: Map<String, Variant_Boolean_String_Double>, level: Double): Boolean
+  abstract fun logSignal(values: AnyMap, level: Double): Boolean
   
   @DoNotStrip
   @Keep

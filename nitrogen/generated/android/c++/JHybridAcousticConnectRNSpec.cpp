@@ -25,6 +25,8 @@ namespace margelo::nitro::acousticconnectrn { struct PushErrorInfo; }
 #include "JVariant_NullType_Boolean.hpp"
 #include "JVariant_Boolean_String_Double.hpp"
 #include <unordered_map>
+#include <NitroModules/AnyMap.hpp>
+#include <NitroModules/JAnyMap.hpp>
 #include <NitroModules/ArrayBuffer.hpp>
 #include <NitroModules/JArrayBuffer.hpp>
 #include "PushErrorInfo.hpp"
@@ -119,15 +121,9 @@ namespace margelo::nitro::acousticconnectrn {
     }(), level);
     return static_cast<bool>(__result);
   }
-  bool JHybridAcousticConnectRNSpec::logSignal(const std::unordered_map<std::string, std::variant<bool, std::string, double>>& values, double level) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<jboolean(jni::alias_ref<jni::JMap<jni::JString, JVariant_Boolean_String_Double>> /* values */, double /* level */)>("logSignal");
-    auto __result = method(_javaPart, [&]() -> jni::local_ref<jni::JMap<jni::JString, JVariant_Boolean_String_Double>> {
-      auto __map = jni::JHashMap<jni::JString, JVariant_Boolean_String_Double>::create(values.size());
-      for (const auto& __entry : values) {
-        __map->put(jni::make_jstring(__entry.first), JVariant_Boolean_String_Double::fromCpp(__entry.second));
-      }
-      return __map;
-    }(), level);
+  bool JHybridAcousticConnectRNSpec::logSignal(const std::shared_ptr<AnyMap>& values, double level) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jboolean(jni::alias_ref<JAnyMap::javaobject> /* values */, double /* level */)>("logSignal");
+    auto __result = method(_javaPart, JAnyMap::create(values), level);
     return static_cast<bool>(__result);
   }
   bool JHybridAcousticConnectRNSpec::logExceptionEvent(const std::string& message, const std::string& stackInfo, bool unhandled) {

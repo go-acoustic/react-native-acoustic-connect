@@ -10,13 +10,39 @@
 //  Created on 5/9/25.
 //
 
-import { type HybridObject } from 'react-native-nitro-modules'
+import { type AnyMap, type HybridObject } from 'react-native-nitro-modules'
 
 // Define a named type for the anonymous object
 export type KeyValueObject = {
     placeholder: string; // Add a placeholder property to avoid the "empty struct" error
     [key: string]: unknown;
 };
+
+/**
+ * Payload accepted by {@link AcousticConnectRN.logSignal} — any JSON-shaped
+ * object. Nested objects and arrays are allowed, so this is a superset of a
+ * flat `Record<string, string | number | boolean>`.
+ *
+ * You do not need this type to call `logSignal`: an object literal is enough.
+ * It exists for the times you want to name the payload — a helper parameter, a
+ * shared constant — and is re-exported from the package root so you never have
+ * to reach into `react-native-nitro-modules` for it:
+ *
+ * ```ts
+ * import AcousticConnectRN, { type SignalValues } from 'react-native-acoustic-connect'
+ *
+ * const payload: SignalValues = { signalContent: { signalType: 'pageview' } }
+ * AcousticConnectRN.logSignal(payload, 1)
+ * ```
+ *
+ * @remarks
+ * Aliases nitro's `AnyMap`, which is the only way to express arbitrary JSON in
+ * a Nitro spec — a hand-rolled recursive type is rejected by nitrogen, which
+ * tries to generate a struct for it. Nitrogen resolves the alias, so the
+ * generated native bindings are identical either way; the indirection exists
+ * purely to keep a third-party type name off our public API.
+ */
+export type SignalValues = AnyMap
 
 export type ConnectMonitoringLevelType = 'Ignore' | 'CellularAndWiFi' | 'WiFi'
 
@@ -123,8 +149,87 @@ export interface AcousticConnectRN extends HybridObject<{ ios: 'swift', android:
     getBooleanConfigItemForKey(theDefault: boolean, key: string, moduleName: string): boolean
     getStringItemForKey(theDefault: string, key: string, moduleName: string):  string | null | undefined
     getNumberItemForKey(theDefault: number, key: string, moduleName: string): number
+    /**
+     * Logs a named custom event with a flat set of key/value pairs.
+     *
+     * `values` is deliberately **flat** (scalars only), unlike
+     * {@link logSignal}. The Android SDK's custom-event path is typed
+     * `HashMap<String, String>` end to end (`Connect.logCustomEvent` →
+     * `Tealeaf.logCustomEvent`), so there is no native route for nested
+     * JSON. Widening this signature would compile but silently drop the
+     * nesting on Android while preserving it on iOS — a cross-platform
+     * divergence worse than the restriction. Use {@link logSignal} when the
+     * payload needs structure.
+     *
+     * @param eventName Event name; appears in the posted JSON.
+     * @param values Flat key/value pairs to attach to the event.
+     * @param level Monitoring level for this event.
+     * @returns `true` if the SDK **accepted the event for delivery** — not
+     *   that the collector received it. Events are queued on device and posted
+     *   in batches later, so nothing this call can return attests to delivery
+     *   or to server-side acceptance. A `false` means the SDK rejected the
+     *   event outright and nothing was queued; the bridge also logs that to
+     *   logcat / os_log so it is visible without inspecting the return value.
+     */
     logCustomEvent(eventName: string, values: Record<string, string | number | boolean>, level: number): boolean
-    logSignal(values: Record<string, string | number | boolean>, level: number): boolean
+
+    /**
+     * Logs a signal payload.
+     *
+     * `values` accepts **arbitrary JSON** — nested objects and arrays, not
+     * just scalars — because both native SDKs embed the payload verbatim:
+     * iOS `CTSignalMessage` gates only on `NSJSONSerialization
+     * isValidJSONObject:`, and Android `Connect.logSignal` takes an untyped
+     * `HashMap<String, Any?>`. The bridge converts the map to each
+     * platform's JSON representation without flattening or reshaping it.
+     *
+     * Scalar-only callers are unaffected: {@link SignalValues} is a superset
+     * of `Record<string, string | number | boolean>`.
+     *
+     * @param values Signal payload. Objects, arrays, strings, numbers,
+     *   booleans and `null` are all carried through.
+     * @param level Monitoring level for this signal.
+     * @returns `true` if the SDK **accepted the signal for delivery** — not
+     *   that the collector received it, and not that it passed server-side
+     *   schema validation. Signals are queued on device and posted later, so
+     *   nothing this call can return attests to delivery. A `false` means the
+     *   SDK rejected it and nothing was queued; the bridge logs that to
+     *   logcat / os_log.
+     *
+     * @remarks
+     * **Android version boundary — top-level numbers.** The Android SDK's
+     * `JsonUtil.getHashValues` gained a `Number` branch in Connect Android
+     * **11.0.24-beta**, so from that version a top-level numeric value is
+     * carried. Earlier versions serialised only `String`, `Boolean`,
+     * `JSONObject`, `JSONArray` and `byte[]` at the top level of the signal
+     * map and dropped a top-level number. Numbers nested *inside* an object
+     * or array were never affected, because the bridge builds those
+     * `JSONObject`/`JSONArray` values itself, and iOS has always carried
+     * top-level numbers normally. Both versions sit inside the
+     * `[11.0.11, 12.0.0)` range this package accepts, so nest the number if
+     * your integration pins a Connect Android version below 11.0.24-beta.
+     *
+     * @example Nested payload
+     * ```ts
+     * import AcousticConnectRN from 'react-native-acoustic-connect'
+     *
+     * AcousticConnectRN.logSignal(
+     *   {
+     *     signalContent: {
+     *       signalType: 'pageview',
+     *       url: 'https://app.example.com/dashboard',
+     *       pageCategory: 'dashboard',
+     *     },
+     *     audience: [
+     *       { name: 'Account Name', value: 'Acme Corp' },
+     *       { name: 'Account ID', value: '4815162342' },
+     *     ],
+     *   },
+     *   1
+     * )
+     * ```
+     */
+    logSignal(values: SignalValues, level: number): boolean
     logExceptionEvent(message: string, stackInfo: string, unhandled: boolean): boolean
     logLocation(): boolean
     logLocationWithLatitudeLongitude(latitude: number, longitude: number, level: number): boolean
@@ -133,11 +238,37 @@ export interface AcousticConnectRN extends HybridObject<{ ios: 'swift', android:
     setCurrentScreenName(logicalPageName: string): boolean
     logScreenViewContextLoad(logicalPageName: string | null | undefined, referrer:string | null | undefined): boolean
     logScreenViewContextUnload(logicalPageName: string | null | undefined, referrer:string | null | undefined): boolean
+    /**
+     * Captures the layout of the current screen.
+     *
+     * @param name  Screen name to associate with the capture.
+     * @param delay Milliseconds to wait before capturing — the same unit as
+     *   `CaptureLayoutDelay` in the layout config, on both platforms. A
+     *   negative value means "use the `CaptureLayoutDelay` configured for this
+     *   screen"; `0` captures immediately.
+     *
+     * Prefer `TLTRN.logScreenLayout`, which defaults to the configured delay.
+     *
+     * @returns For a `delay` of `0`, whether the capture itself succeeded. For
+     *   any positive or configured delay, only that the capture was
+     *   **scheduled** — the native deferred overload dispatches and returns
+     *   immediately, so a `true` says nothing about what the capture found
+     *   when it eventually ran. Failures after that point (no view controller
+     *   resolved, config gating the capture off) surface in logcat / os_log,
+     *   not here.
+     */
     logScreenLayout(name: string, delay: number): boolean
     // New dialog event handling methods
     logDialogShowEvent(dialogId: string, dialogTitle: string, dialogType: string): boolean
     logDialogDismissEvent(dialogId: string, dismissReason: string): boolean
     logDialogButtonClickEvent(dialogId: string, buttonText: string, buttonIndex: number): boolean
+    /**
+     * Logs a custom event against a tracked dialog.
+     *
+     * `values` is flat for the same reason as {@link logCustomEvent} — this
+     * routes to the native custom-event API, whose Android path carries string
+     * values only.
+     */
     logDialogCustomEvent(dialogId: string, eventName: string, values: Record<string, string | number | boolean>): boolean
 
     /**
@@ -161,23 +292,62 @@ export interface AcousticConnectRN extends HybridObject<{ ios: 'swift', android:
      *   `'loggedIn'` when omitted (identity logging typically marks a sign-in),
      *   overriding the native SDKs' own `'pageView'` default.
      * @param additionalParameters Optional extra key/value pairs merged into the
-     *   signal payload. Only when omitted (`undefined`) does the bridge supply
-     *   the default `{ registrationMethod: 'email' }`; an explicitly-provided
-     *   map is used as-is, so passing an empty `{}` sends no extra parameters
-     *   (the default is not merged in). A `'url'` entry is honoured uniformly on
-     *   both platforms: on Android it is routed to the SDK's explicit `url`
-     *   parameter, on iOS it rides inside the parameter map (where the native
-     *   API expects it).
+     *   signal payload. Only when omitted (`undefined`) does the bridge supply a
+     *   default, and that default follows the resolved `signalType` — see
+     *   **Required method attribute** below. An explicitly-provided map is used
+     *   as-is, so passing an empty `{}` sends no extra parameters (the default is
+     *   not merged in). A `'url'` entry is honoured uniformly on both platforms:
+     *   on Android it is routed to the SDK's explicit `url` parameter, on iOS it
+     *   rides inside the parameter map (where the native API expects it).
      * @returns A promise resolving to `true` if the identity signal was
      *   dispatched, `false` otherwise (including the blank-identifier case).
      *   Never rejects.
      *
-     * @example
+     * ### Required method attribute
+     *
+     * Identity signals must carry a *method* attribute, and the key Connect
+     * requires depends on the signal type:
+     *
+     * | `signalType`         | Required attribute   |
+     * | -------------------- | -------------------- |
+     * | `'loggedIn'`         | `loginMethod`        |
+     * | `'accountRegistered'`| `registrationMethod` |
+     *
+     * Send the wrong key and the signal fails schema validation and is
+     * discarded server-side — while this promise still resolves `true`, because
+     * the native SDKs report only that the signal was queued. If you pass
+     * `additionalParameters` explicitly, you own supplying the right key.
+     *
+     * @example Sign-in — `loginMethod` is required
      * ```ts
      * import AcousticConnectRN from 'react-native-acoustic-connect'
      *
+     * await AcousticConnectRN.logIdentity('Email', 'user@example.com', 'loggedIn', {
+     *   loginMethod: 'sso',
+     * })
+     *
+     * // Omitting both arguments is equivalent to the above with
+     * // `{ loginMethod: 'email' }` — the bridge defaults to a `loggedIn` signal.
      * await AcousticConnectRN.logIdentity('Email', 'user@example.com')
      * ```
+     *
+     * @example Registration — `registrationMethod` is required
+     * ```ts
+     * await AcousticConnectRN.logIdentity(
+     *   'Email',
+     *   'user@example.com',
+     *   'accountRegistered',
+     *   { registrationMethod: 'email' }
+     * )
+     * ```
+     *
+     * @returns `true` if the SDK **accepted the identity signal for
+     *   delivery**. It does not mean the signal reached the collector, and it
+     *   does not mean the collector kept it — a schema-invalid signal (the
+     *   wrong method key above) is discarded server-side after resolving
+     *   `true` here. Never rejects. A `false` means the SDK rejected the call
+     *   locally, e.g. a blank identifier; the bridge logs that to logcat /
+     *   os_log.
      */
     logIdentity(
         identifierName: string,

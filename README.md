@@ -13,6 +13,8 @@ For the full product overview see the
 - React 19.1.1 or newer (or whatever your RN version pins)
 - `react-native-nitro-modules` at the **exact** version this package pins in `peerDependencies` (currently **`0.35.9`**) — your app must resolve exactly this version; see [Nitro version pin](#nitro-version-pin)
 - Node 20 or newer
+- JDK 17 or newer for Android builds — the same JDK React Native 0.82 itself
+  requires. The Android module compiles at Java 17; newer JDKs work.
 - iOS deployment target ≥ 15.1, AcousticConnect / AcousticConnectDebug pod ≥ 2.0.5
 - Android `minSdk` ≥ 26, `compileSdk` ≥ 35, `io.github.go-acoustic:connect` in `[11.0.11, 12.0.0)`
 - **Expo SDK 55+ is supported** via the bundled Expo Config Plugin —
@@ -363,8 +365,17 @@ screen / touch / keyboard tracking) can skip it entirely.
 ```ts
 import AcousticConnectRN from 'react-native-acoustic-connect'
 
-// Custom application event
+// Custom application event (flat key/value pairs)
 AcousticConnectRN.logCustomEvent('checkout_started', { cartId: 'abc' }, 1)
+
+// Signal — accepts arbitrary JSON, including nested objects and arrays
+AcousticConnectRN.logSignal(
+  {
+    signalContent: { signalType: 'pageview', pageCategory: 'checkout' },
+    audience: [{ name: 'Account ID', value: '4815162342' }],
+  },
+  1
+)
 
 // Force a logical screen name (e.g. for non-NavigationContainer screens)
 AcousticConnectRN.setCurrentScreenName('CheckoutScreen')
@@ -385,6 +396,26 @@ for details.
 
 ## API reference
 
+> **What the logging methods' `boolean` means.** Every `log*` method returns
+> whether the native SDK **accepted the event for delivery** — never whether
+> the collector received it, and never whether the collector kept it. Events
+> are queued on device and posted in batches later, so no return value from
+> these calls can attest to delivery, and a server-side rejection (a signal
+> that fails schema validation, say) happens long after you have already been
+> told `true`. Treat the value as "the SDK took this", and use the collector or
+> the platform log as the source of truth for what shipped.
+>
+> A `false` means the SDK rejected the call outright and nothing was queued.
+> The bridge also writes that to `logcat` (tag `AcousticConnectRN`) and
+> `os_log` (subsystem `com.acoustic.AcousticConnectRN`, category `bridge`), so
+> a rejection is visible without inspecting return values you would otherwise
+> never read.
+>
+> `logScreenLayout` is weaker still: with the configured delay — the normal
+> case — a `true` means only that the capture was **scheduled**. What the
+> capture found when it eventually ran, and whether it produced a layout
+> message at all, is reported in the platform log only.
+
 ### `AcousticConnectRN.enable(): boolean`
 
 Re-enables the SDK after a prior `disable()`. Reads all configuration from
@@ -400,6 +431,86 @@ already running.
 ### `AcousticConnectRN.disable(): boolean`
 
 Stops data capture, flushes pending messages, releases push state. Idempotent.
+
+### `AcousticConnectRN.logSignal(values, level): boolean`
+
+Logs a signal. `values` accepts **arbitrary JSON** — nested objects and arrays,
+not just scalars — and the payload is carried through without flattening or
+reshaping:
+
+```ts
+AcousticConnectRN.logSignal(
+  {
+    signalContent: {
+      signalType: 'pageview',
+      url: 'https://app.example.com/dashboard',
+      pageCategory: 'dashboard',
+    },
+    audience: [
+      { name: 'Account Name', value: 'Acme Corp' },
+      { name: 'Account ID', value: '4815162342' },
+    ],
+  },
+  1
+)
+```
+
+Flat scalar payloads keep working unchanged — the type is a superset of
+`Record<string, string | number | boolean>`.
+
+An object literal needs no type import. If you want to *name* a payload — a
+shared constant, a helper parameter — the package exports `SignalValues` for it:
+
+```ts
+import AcousticConnectRN, {
+  type SignalValues,
+} from 'react-native-acoustic-connect'
+
+const pageView: SignalValues = {
+  signalContent: { signalType: 'pageview', pageCategory: 'checkout' },
+}
+
+AcousticConnectRN.logSignal(pageView, 1)
+```
+
+> **Android: top-level numbers need Connect Android 11.0.24-beta or newer.**
+> Android's signal serializer gained a number branch in Connect Android
+> **11.0.24-beta**; from that version a top-level numeric value is carried, the
+> same as on iOS. Earlier versions carried strings, booleans, objects and arrays
+> at the top level but dropped a top-level number. Numbers nested inside an
+> object or array were never affected on either platform.
+>
+> Both versions sit inside the `[11.0.11, 12.0.0)` range this package accepts,
+> and the Android dependency floats to the newest published build unless you pin
+> it, so most integrations get the new behaviour. Nest the number if you pin an
+> older one:
+>
+> ```ts
+> AcousticConnectRN.logSignal({ cart: { items: 3 } }, 1) // any supported version
+> AcousticConnectRN.logSignal({ items: 3 }, 1)           // iOS, + Android 11.0.24-beta and newer
+> ```
+
+### `AcousticConnectRN.logCustomEvent(eventName, values, level): boolean`
+
+Logs a named custom event. Unlike `logSignal`, `values` is **flat** — strings,
+numbers and booleans only. The Android SDK's custom-event path is typed for
+string values end to end, so there is no native route for nested JSON; widening
+it would preserve the nesting on iOS and silently drop it on Android. Use
+`logSignal` when the payload needs structure.
+
+TypeScript will reject a nested value, but types are erased at runtime — a
+payload built from an API response or widened through `any` still reaches the
+bridge nested, gets reshaped by the native SDK, and returns `true`. The wrapper
+logs a `console.warn` naming the offending keys when that happens (once per
+call site, in dev and in production; the payload itself is passed through
+unchanged). If you see it, move the payload to `logSignal`.
+
+Numbers are rendered the same way on both platforms — a JS `2` arrives as `2`,
+not `2.0`. Note the remaining difference in *type*: because the Android path is
+string-typed, an Android custom-event number lands on the wire as a JSON string
+(`"2"`) where iOS sends a JSON number (`2`). `logSignal` carries native types on
+both platforms; reach for it when a dashboard or Composer rule compares the
+value numerically.
 
 ### Push configuration (`ConnectConfig.json`)
 
@@ -435,6 +546,284 @@ app-driven. The host app is responsible for:
 The Android push-forwarding API itself is wired under follow-up work — until
 that lands, `PushEnabled: true` on Android only changes which artifact is on
 the classpath; the host-side token forwarding API is not yet exposed.
+
+### Screen-capture configuration (`ConnectConfig.json`)
+
+Screen layout and screenshot capture are configured per platform, because the
+two native SDKs read their defaults from different places.
+
+| Field | Type | Default | Semantics |
+| --- | --- | --- | --- |
+| `layoutConfig` | object \| absent | absent | Shared baseline for both platforms. Supports `AutoLayout` (screen capture rules) and `AppendMapIds`. |
+| `layoutConfigIos` | object \| absent | absent | iOS-specific overrides, deep-merged over `layoutConfig`. |
+| `layoutConfigAndroid` | object \| absent | absent | Android-specific overrides, deep-merged over `layoutConfig`. |
+| `GetImageDataOnScreenLayout` | boolean | SDK default | Cross-platform. When `false`, layout messages carry no screenshot image data. |
+
+`AutoLayout` holds a `GlobalScreenSettings` object plus optional per-screen
+overrides keyed by screen name, where a per-screen value wins over the global
+one. To turn screenshot capture off on both platforms:
+
+```json
+{
+  "Connect": {
+    "layoutConfig": {
+      "AutoLayout": {
+        "GlobalScreenSettings": { "ScreenShot": false }
+      }
+    }
+  }
+}
+```
+
+`ScreenShot` is the cross-platform switch — set it in `layoutConfig` (or per
+platform) and both native SDKs honour it. `CaptureScreenshotOn` is a related
+but **iOS-only** key: iOS's native auto-instrumentation reads it, but on
+Android the equivalent reader has no callers, so `CaptureScreenshotOn` is
+accepted wherever you put it and does nothing there. Set it only under
+`layoutConfigIos` if you want it; leaving it out of `layoutConfigAndroid` (or
+the shared `layoutConfig`) costs nothing on Android and avoids implying it
+does something it doesn't.
+
+Put anything common in `layoutConfig` and use `layoutConfigIos` /
+`layoutConfigAndroid` only for what differs. The platform block is **deep-merged**
+over the shared one, so it refines the baseline rather than replacing it: an
+iOS block setting just `ScreenShot` keeps the shared `Masking`, per-screen
+rules, and every other shared value. Arrays are replaced outright rather than
+concatenated, so a platform block can shorten or clear a shared list such as
+`MaskIdList`.
+
+#### Masking is selection, then redaction — an unmatched pattern leaves data unmasked
+
+A screen rule's `Masking` block works in two independent steps: a control is
+first **selected** by a matching `MaskIdList` (control id), `MaskValueList`
+(control value), `MaskAccessibilityIdList` (accessibility id), or
+`MaskAccessibilityLabelList` (accessibility label) pattern, and only a
+*selected* control is redacted — its value, and (Connect iOS 2.1.22+ / Android
+11.0.23-beta+ only — older SDKs serialised the accessibility object verbatim
+regardless of masking) its accessibility label and hint. A control whose value
+never matches any pattern in any of the four lists is not masked in any field.
+That's by design, not a bug — but it means a client whose patterns don't
+happen to match a given value can believe that value is masked when it never
+was.
+
+Email addresses are an easy miss: they rarely match a card-number or
+`SECRET-`-style pattern, and free-text fields (bios, support messages,
+usernames) routinely contain one. For any screen that collects email
+addresses, add a pattern to `MaskValueList`:
+
+```json
+{ "MaskValueList": ["[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"] }
+```
+
+(The `bare-workflow` and `expo` sample `ConnectConfig.example.json` already
+ship this pattern on `GlobalScreenSettings`.)
+
+When no block applies, each native SDK keeps the defaults from its own bundled
+layout config:
+
+- **iOS** — the defaults ship inside the Connect pod's `ConnectResources.bundle`
+  and are copied into your `.app`, so `pod install` replaces them on every run.
+  There is no app-level override file, which is why `ConnectConfig.json` is the
+  only supported route — do not edit anything under `Pods/`.
+- **Android** — the plugin writes your merged block to its own
+  `ConnectLayoutConfig.json` asset. If your app ships
+  `android/app/src/main/assets/ConnectLayoutConfig.json`, Android asset merging
+  gives **your** copy priority and the `ConnectConfig.json` block is ignored;
+  the build prints a warning when both exist. Keep one or the other.
+
+> Turning screenshots off does not disable behavioural capture: screen views,
+> clicks, and custom events still flow. It only drops the image data, which is
+> what a subscription without session replay has no consumer for.
+
+#### `NumberOfWebViews` turns off iOS layout capture — leave it at `0`
+
+`AutoLayout` rules accept a `NumberOfWebViews` key. On iOS, any value greater
+than zero marks the screens that rule covers as web-view screens, and the SDK's
+automatic layout capture is skipped for a web-view screen. Its effect is not
+limited to screens that actually host a `WebView`: the value is read as a
+declaration about the rule, not a count that gets verified.
+
+The trap is where it is usually set. `GlobalScreenSettings` is the rule that
+applies to **every** screen with no more specific rule of its own, and React
+Native screens are all in that position — they are hosted by the same generic
+container class, so no per-screen native rule matches them. So a single
+`"NumberOfWebViews": 1` under `GlobalScreenSettings` switches off
+auto-instrumented layout capture for the entire app on iOS, including screens
+with no web content at all:
+
+```json
+{
+  "Connect": {
+    "layoutConfigIos": {
+      "AutoLayout": {
+        "GlobalScreenSettings": { "NumberOfWebViews": 0 }
+      }
+    }
+  }
+}
+```
+
+Screen views, clicks, and custom events are unaffected — the symptom is layout
+messages going missing while everything else keeps arriving, which reads like a
+capture failure rather than a setting. Keep `NumberOfWebViews` at `0`, the value
+every shipped template uses. To stand layout capture down deliberately, set
+`CaptureLayoutOn: 0` on the rule instead — it is the key that means that, and it
+leaves `NumberOfWebViews` free to describe the screen.
+
+#### WebView capture on Android: prerequisites and two open limitations
+
+A screen that hosts a `react-native-webview` `WebView` has capture behaviour
+beyond the config above:
+
+- **The WebView must be scrolled on screen.** A capture only records what is
+  currently visible — the native tree-walk skips subtrees outside the
+  viewport by design. A `WebView` sitting below the fold at the default
+  scroll position yields a layout with no WebView nodes at all, which looks
+  exactly like WebView capture never engaged. Scroll it fully into view
+  before triggering (or waiting on) a capture.
+- **`GoogleWebViewEnabled`** is a top-level `Connect` key (Android only,
+  default `true`) that gates whether the SDK instruments WebViews at all:
+
+  ```json
+  { "Connect": { "GoogleWebViewEnabled": false } }
+  ```
+
+  Set to `false`, the SDK does not discover or walk into any `WebView` on the
+  screen — the rest of that screen still captures normally. It does not gate
+  anything else on this list: screen views, clicks, and non-WebView layout
+  content are unaffected either way.
+- **A discovered WebView currently drops that screen's whole layout
+  message.** Once the SDK finds a `WebView`, it waits for a DOM-capture
+  correlation id from the page before it can finish and post the layout — and
+  a React Native-hosted `WebView` never supplies one, so the wait never
+  resolves and the *entire* screen's layout message is dropped, not just the
+  WebView's portion. Confirmed present in Android Connect **11.0.23-beta**, the
+  newest published artifact at the time of writing, and in every earlier version
+  in the supported range — measured on an emulator, where a capture on a screen
+  with a visible `WebView` posted **no messages at all** for that session, since
+  the layout's queue placeholder blocks the batch it sits in. There is no
+  client-side fix; `GoogleWebViewEnabled: false` (below) avoids it by not
+  instrumenting the `WebView` in the first place. A fix exists in the native SDK
+  but is not in any published artifact yet — check the Android Connect release
+  notes for a version above 11.0.23-beta before assuming this still applies.
+- **Enabling WebView capture replaces the app's `WebViewClient`.** The native
+  SDK installs its own `WebViewClient` on that `WebView` to instrument it, in
+  place of the one `react-native-webview` had set — so callbacks such as
+  `onHttpError` and `onNavigationStateChange` on that `WebView` stop firing
+  while capture is active. Same status as the item above: present through Android
+  Connect **11.0.23-beta**, fixed in the native SDK but not yet published, and
+  the rest of the screen is unaffected either way.
+
+Both of the limitations above only occur once the SDK is instrumenting a
+`WebView`, so `GoogleWebViewEnabled: false` avoids both — at the cost of
+getting no WebView capture on that screen at all.
+
+#### Capture timing (`CaptureLayoutDelay`)
+
+`AutoLayout.GlobalScreenSettings.CaptureLayoutDelay` is how long, in
+milliseconds, the SDK waits before capturing the layout. It matters more in
+React Native than in a native app: the wrapper triggers capture from React
+Navigation's state change, which fires at the *start* of a screen transition,
+whereas a native app captures from the view-controller lifecycle, after it. Too
+short a delay and the capture catches a half-drawn screen.
+
+The templates ship `500`, which clears a typical transition animation on both
+platforms. Tune it globally, or per screen for one that is slower than the
+rest:
+
+```json
+{
+  "Connect": {
+    "layoutConfig": {
+      "AutoLayout": {
+        "GlobalScreenSettings": { "CaptureLayoutDelay": 500 },
+        "Checkout": { "CaptureLayoutDelay": 900 }
+      }
+    }
+  }
+}
+```
+
+`TLTRN.logScreenLayout(name)` uses the configured value. Pass a second argument
+to override it for one call — `TLTRN.logScreenLayout(name, 0)` captures
+immediately, `TLTRN.logScreenLayout(name, 900)` waits 900 ms.
+
+A fixed delay cannot cover a screen whose content arrives asynchronously: if
+data lands after the delay elapses, the capture shows the screen without it.
+Raising the global delay to cover the slowest fetch delays every other screen
+too. Call `TLTRN.logScreenLayout(name)` again when the content is on screen
+instead — each call captures the layout as it stands at that moment.
+
+Leaving the block out entirely gives you 500 ms as well. That is the wrapper's
+default, chosen so both platforms behave the same; the native SDKs' own bundled
+defaults differ from each other and are tuned for the lifecycle trigger rather
+than the React Navigation one. Internally, omitting the second argument to
+`TLTRN.logScreenLayout` sends a sentinel (`-1`) that both bridges resolve to
+this configured value; any value the caller passes explicitly (`>= 0`) is used
+as-is instead, bypassing the config lookup for that one call.
+
+A near-zero value is not a request for faster captures. On iOS the
+auto-instrumentation capture is triggered off the view-controller lifecycle,
+and a delay close to `0` lets that trigger re-fire against the same screen far
+faster than the app can settle — hundreds of captures within a couple of
+hundred milliseconds while the app just sits idle, rather than one per actual
+transition. The visible symptom is a runaway capture loop: a "Refreshing…"
+indicator that stays up continuously instead of the brief one after a normal
+transition. The SDK enforces no floor on this value, so `1` (millisecond) is
+accepted and is exactly what produces the loop. Keep `CaptureLayoutDelay` at
+`500` or raise it per screen — never lower it toward `0`.
+
+#### Where screen-view and layout messages come from, and how to reduce duplicates
+
+The two message kinds have different sources, and they differ per platform:
+
+**Screen views (one source per platform).** On Android, the `<Connect>` wrapper
+is the *only* source — it emits on React Navigation's `state` event. On iOS,
+the native SDK's auto-instrumentation is the *only* source — it emits when a
+screen's view controller reports its appearance. The wrapper never emits a
+screen view on iOS; its role there is to hand the current *route name* to the
+native SDK (which is what makes messages read `Checkout` rather than a native
+container class) and to drive referrer chaining across transitions.
+
+Duplicate screen views observed on iOS are therefore not two sources
+overlapping — they are the single native source firing more than once when the
+same screen's view controller reports several appearances for one transition.
+They inflate event volumes and skew per-screen counts; they do not lose data.
+There is no configuration key that collapses them today; a native-side dedupe
+is under investigation. Do not try to solve it by removing the wrapper: on iOS
+that costs route-based names and referrer chaining, and on Android it removes
+screen views entirely. A same-name filter in the wrapper would not help either
+— the wrapper is not the emitter on iOS, and such a filter would swallow
+legitimate repeats like a stack pushing the same screen name twice.
+
+**Layouts (two sources on iOS).** With automatic layout capture enabled in
+config, an iOS transition can produce two layout messages: one from the
+wrapper's `logScreenLayout` call and one from the native auto-instrumentation.
+Control it from config, on the native side that has the duplicate:
+
+```json
+{
+  "Connect": {
+    "layoutConfigIos": {
+      "AutoLayout": {
+        "GlobalScreenSettings": { "CaptureLayoutOn": 0 }
+      }
+    }
+  }
+}
+```
+
+`CaptureLayoutOn: 0` stands the **native** automatic layout capture down and
+leaves the wrapper's route-named captures as the single source. Set it per
+screen rather than globally if only some screens are noisy. Screen views,
+clicks, and custom events are unaffected by this key.
+
+If you would rather keep the native captures and have the wrapper stay out of
+the way, omit `navigationRef` and do not rely on `<Connect>` for screen naming
+— but expect native container class names in place of your route names.
+
+Measure before changing either default: the volume depends on your navigator
+structure, and both defaults are what every shipped sample uses.
 
 ### `<Connect>` props
 

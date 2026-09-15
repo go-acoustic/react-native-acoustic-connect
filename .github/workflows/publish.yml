@@ -83,7 +83,12 @@ jobs:
         run: |
           echo "Note: Trusted publishing requires npm CLI version 11.5.1 or later."
           echo "Current npm version: $(npm --version)"
-          npm install -g npm@latest
+          # Exact pin for the same reason as publish.yml — see the rationale
+          # there. This workflow escaped the npm 12 breakage only because it
+          # already pinned node 22 (npm 12 needs ^22.22.2). That was luck, not
+          # design: the next npm major to raise its floor would break the
+          # production publish the same way it broke the beta one.
+          npm install -g npm@11.18.0
           echo "Upgraded npm version: $(npm --version)"
 
       - name: Verify package metadata

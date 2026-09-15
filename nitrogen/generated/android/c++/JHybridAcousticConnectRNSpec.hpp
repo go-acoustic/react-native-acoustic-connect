@@ -64,7 +64,7 @@ namespace margelo::nitro::acousticconnectrn {
     std::optional<std::variant<nitro::NullType, std::string>> getStringItemForKey(const std::string& theDefault, const std::string& key, const std::string& moduleName) override;
     double getNumberItemForKey(double theDefault, const std::string& key, const std::string& moduleName) override;
     bool logCustomEvent(const std::string& eventName, const std::unordered_map<std::string, std::variant<bool, std::string, double>>& values, double level) override;
-    bool logSignal(const std::unordered_map<std::string, std::variant<bool, std::string, double>>& values, double level) override;
+    bool logSignal(const std::shared_ptr<AnyMap>& values, double level) override;
     bool logExceptionEvent(const std::string& message, const std::string& stackInfo, bool unhandled) override;
     bool logLocation() override;
     bool logLocationWithLatitudeLongitude(double latitude, double longitude, double level) override;

@@ -95,8 +95,8 @@ function isPushEnabled(projectRoot: string): boolean {
  * name, so a mismatch makes Gradle fail much later at
  * `:app:processDebugGoogleServices` with the opaque "No matching client found
  * for package name …" — and only after a full prebuild + Gradle config. Surface
- * it here, at the moment the native project is (re)generated, with the exact fix
- * (CA-144135 §10b). `acoustic-connect doctor` performs the same check up front;
+ * it here, at the moment the native project is (re)generated, with the exact fix.
+ * `acoustic-connect doctor` performs the same check up front;
  * this is the guard for a developer who runs `expo run:android` directly.
  *
  * Only the genuine MISMATCH throws. A missing package / googleServicesFile is

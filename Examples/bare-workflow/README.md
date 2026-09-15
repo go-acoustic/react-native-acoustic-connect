@@ -136,6 +136,36 @@ is committed, so a fresh checkout builds and signs without extra setup. The
 > the sample's React Native version and the Android build resolves the wrong
 > one.
 
+### Every dependency is pinned to an exact version — do not reintroduce ranges
+
+`package.json` carries no `^` or `~` specs. CI installs this sample **fresh and
+unlocked** (`npm install --no-workspaces`, see the `prepareSampleHost` step in
+the repo's `Jenkinsfile`) precisely so the sample gates exercise what a partner
+gets from a clean clone. With a range, that means the newest matching release on
+the day the build runs — so an upstream publish can turn the gates red, and break
+the published sample for partners, with no commit behind it.
+
+That is not hypothetical. `react-native-screens` `4.26.0` raised its own
+`peerDependencies` to `react-native >=0.84.0` while this sample is on 0.82.1, and
+the old `^4.4.0` spec picked it up the day it shipped. Both gates failed at
+codegen:
+
+```
+Error: The first argument of method setToolbarMenuElementOptions must be of type React.ElementRef<>
+FAILURE: Execution failed for task ':react-native-screens:generateCodegenSchemaFromJavaScript'
+```
+
+`4.25.2` is the last release whose peer range still allows React Native 0.82.
+
+**Bumping a dependency here is deliberate work, not a range widening:** change the
+exact version, run the gate commands (`npm install --no-workspaces` in a clean
+copy, then `./gradlew assembleDebug` and the iOS build), and only then commit.
+Anything tied to the React Native version — `react-native-screens`,
+`react-navigation`, `@babel/*`, `@react-native/*` — moves together with it.
+
+Note this pins **direct** dependencies only; transitive versions still resolve
+fresh. Committing a `package-lock.json` for this sample would close that gap.
+
 ## Configuring SDK Credentials
 
 The demo reads credentials from `ConnectConfig.json` next to this README.
@@ -154,6 +184,145 @@ start from the bundled config; the JS call is just confirmation.
 To change credentials: edit `ConnectConfig.json`, re-run
 `bundle exec pod install --project-directory=ios` for iOS, then
 relaunch.
+
+## Masking and the layout config
+
+Masking lives in the `layoutConfigIos` / `layoutConfigAndroid` blocks of
+`ConnectConfig.json`, under `AutoLayout.<screen>.Masking`. Two of the four list
+keys are frequently misread, so it is worth being precise about which of them
+*select* an element and which *redact* one.
+
+| Key | Matched against | Effect |
+| --- | --- | --- |
+| `MaskValueList` | the element's **value** | the element is redacted |
+| `MaskIdList` | the element's **id** | the element is redacted |
+| `MaskAccessibilityIdList` | the element's **accessibility id** | the element is redacted |
+| `MaskAccessibilityLabelList` | the element's **accessibility label** | the element is redacted |
+
+All four are lists of regular expressions, and all four do the same thing when
+they match: redact the element. The last two differ only in *what they match on*
+— they are selectors for "which elements are sensitive", useful when the value
+itself has no reliable pattern but the element is identifiable by its
+accessibility annotation. Putting value patterns in
+`MaskAccessibilityLabelList` matches nothing, because it is compared against the
+label, never the value.
+
+"Redact the element" means its **value**, and — from the versions below — its
+**accessibility label and hint** as well.
+
+### An unmatched pattern means unmasked — not "masked elsewhere"
+
+All four lists above are optional and independent: nothing is masked by
+default, and a control whose id/value/accessibility id/accessibility label
+matches none of them is not redacted at all, in any field. Worth stating
+plainly because the failure mode is silent — a client that added a few
+patterns and moved on can be shipping a control that was never selected in the
+first place, and there is no signal from the SDK that anything was skipped.
+
+Email addresses are a common gap: they don't match a card-number-style regex,
+and any free-text field can contain one. If your app collects email
+addresses, add a pattern to `MaskValueList`:
+
+```json
+"MaskValueList": ["[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"]
+```
+
+`GlobalScreenSettings.Masking.MaskValueList` in this sample's
+`ConnectConfig.example.json` already ships it, alongside the card-number
+patterns.
+
+### The accessibility label and hint are masked too
+
+When an element is masked, its `accessibility.label` and `accessibility.hint`
+are masked with it. `accessibility.id` is left readable on purpose — it
+identifies the element rather than describing it.
+
+**This is recent.** It needs Connect **iOS 2.1.22** or **Android
+11.0.23-beta** or newer. Older SDKs
+serialised the whole accessibility object verbatim, so text a mask list was
+configured to redact still reached the collector in `accessibility.label` — and
+no configuration could prevent it, because the two accessibility lists are
+selectors that decide *which* elements are masked, and the redaction landed on
+the value alone.
+
+React Native was hit hardest, which is why this surfaced here: RN derives
+`accessibilityLabel` from a `<Text>` node's own content when no explicit label is
+set, so the leak applied to any masked text without an explicit label — the
+default case, not an edge case.
+
+`AndroidVersion` and `iOSVersion` are empty in `ConnectConfig.example.json`,
+which resolves the newest published SDK, so a sample cloned as-is picks the fix
+up with no pin to change. If you have pinned an older version, these two fields
+are where to raise it.
+
+On an SDK without the fix, two app-side shapes were the only mitigations, and
+neither is needed now:
+
+- an explicit `accessibilityLabel`, which kept the payload clean at the cost of
+  a screen reader announcing the field's purpose but never its content;
+- moving the content to `accessibilityValue`, which looks like a way to keep
+  both and does not work on Android — React Native folds that value into
+  `contentDescription`, the very field the SDK reads as the label.
+
+The Behaviour tab's "Masking covers the accessibility label and hint" card
+renders all three shapes so you can confirm the label is redacted in a real
+payload. Note that on a standard (non-custom) mask the label empties and the key
+is dropped from the payload entirely rather than appearing blank.
+
+### Regexes are JSON strings — escape them twice
+
+Every pattern is a regex *inside* a JSON string, so a backslash must be doubled:
+write `"^\\d{4}$"`, not `"^\d{4}$"`. A single backslash makes the file invalid
+JSON, and an invalid layout config is rejected as a whole — the symptom is that
+layout capture stops entirely rather than that one pattern misbehaves. If
+captures disappear after a config edit, check the logs for:
+
+```
+Please review json data in <Module>LayoutConfig.json it might not be valid json format.
+```
+
+### CaptureLayoutDelay
+
+`CaptureLayoutDelay` is the delay in **milliseconds** before a screen is
+captured. The templates ship `500`, matching the SDK's own bundled default. A
+very small value is not a faster capture but an emptier one: a screen whose
+content arrives asynchronously gets captured before it has rendered anything but
+its header. Raise it for screens that fetch before they paint.
+
+### `NumberOfWebViews` silently turns off all iOS layout capture
+
+Leave `NumberOfWebViews` at `0` — the value this sample and every shipped
+template use. On iOS, any value greater than zero marks the screens a rule
+covers as web-view screens, and automatic layout capture is skipped for them.
+
+The trap is that it is usually set on `GlobalScreenSettings`, the rule applying
+to **every** screen with no more specific rule — and every React Native screen
+is in that position, because they share one generic native container class. So
+a single `"NumberOfWebViews": 1` there switches off layout capture for the whole
+app, including screens with no web content:
+
+```json
+{
+  "Connect": {
+    "layoutConfigIos": {
+      "AutoLayout": {
+        "GlobalScreenSettings": { "NumberOfWebViews": 0 }
+      }
+    }
+  }
+}
+```
+
+Nothing warns you. Screen views, clicks and custom events keep flowing, so the
+symptom is layout (type-10) messages going missing while everything else
+arrives — which reads like a capture failure rather than a setting. During
+release verification this cost days before the cause was found; flipping the
+value back to `0`, with no code change, took one session from 0 to 541 layout
+messages.
+
+To stand layout capture down deliberately, set `CaptureLayoutOn: 0` on the rule
+instead. That is the key that means it, and it leaves `NumberOfWebViews` free to
+describe the screen.
 
 ## Mobile Push Setup
 
@@ -440,7 +609,34 @@ import AcousticConnectRN from 'react-native-acoustic-connect'
 </DemoCard>
 ```
 
-This is the recommended pattern for the **Behaviour** tab — intentionally
-empty for now so the next pass can populate it with demos for
-`logSignal`, `logClickEvent`, `logScreenViewContextLoad`,
+This is the recommended pattern for the **Behaviour** tab, which so far
+holds the session-replay modal cards and the signal card; the next pass can
+populate it with demos for `logClickEvent`, `logScreenViewContextLoad`,
 `logExceptionEvent`, and friends.
+
+### Signal card (`logSignal`)
+
+The Behaviour tab's **Log Signal** card sends two payloads so you can compare
+them in the posted message: a nested one (an object plus an array of objects)
+and a flat scalar-only one. `logSignal` accepts arbitrary JSON — nesting is
+carried through to the collector unchanged.
+
+Calling it needs no type import; the card annotates its shared helper with
+`SignalValues`, exported from the SDK package root, which is the pattern to copy
+when you want to name a payload rather than inline it.
+
+To inspect what actually goes over the wire, point `PostMessageUrl` in
+`ConnectConfig.json` at a local HTTP sink and read the `signal` block of the
+posted message. Two things to know if you do:
+
+- Posted bodies are **gzipped**.
+- The SDK derives the kill-switch URL from the post host and expects the body
+  `1`; any other response reads as a kill-switch trip and posting stops
+  silently.
+
+One platform difference is worth knowing when reading those payloads: Android's
+signal serializer carries a **top-level** numeric value only from Connect
+Android 11.0.24-beta onward, and dropped it before that; iOS has always carried
+it. Numbers nested inside an object or array behave identically on both, on
+every supported version. The card's nested payload puts its numbers one level
+down for that reason.

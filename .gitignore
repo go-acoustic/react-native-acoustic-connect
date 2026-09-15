@@ -97,3 +97,7 @@ example/ios/derived/
 # Stray CI artifact — the Expo gate's `expo export` writes to a temp dir outside
 # the repo; this path only ever appeared via a dirty-workspace commit.
 Examples/expo/ReactNativeConnectBuild/
+
+# Written by android/config.gradle from the consumer ConnectConfig.json
+# layout block. Generated per build, never committed or published.
+android/src/main/assets/ConnectLayoutConfig.json

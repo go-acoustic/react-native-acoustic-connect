@@ -8,6 +8,7 @@ type DemoTextFieldProps = {
   value: string
   onChangeText: (text: string) => void
   disabled?: boolean
+  testID?: string
 }
 
 /**
@@ -21,13 +22,21 @@ export function DemoTextField({
   value,
   onChangeText,
   disabled = false,
+  testID,
 }: DemoTextFieldProps) {
   return (
-    <View style={styles.wrapper}>
-      <Text style={[styles.label, disabled && styles.labelDisabled]}>
+    <View
+      testID={testID ? `${testID}_container` : undefined}
+      style={styles.wrapper}
+    >
+      <Text
+        testID={testID ? `${testID}_label` : undefined}
+        style={[styles.label, disabled && styles.labelDisabled]}
+      >
         {label}
       </Text>
       <TextInput
+        testID={testID}
         style={[styles.input, disabled && styles.inputDisabled]}
         placeholder={placeholder}
         placeholderTextColor={Colors.middleGrey}

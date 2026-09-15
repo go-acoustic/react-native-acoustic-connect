@@ -23,6 +23,7 @@ namespace margelo::nitro::acousticconnectrn { struct PushPermissionResult; }
 #include <NitroModules/Null.hpp>
 #include <optional>
 #include <unordered_map>
+#include <NitroModules/AnyMap.hpp>
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/ArrayBuffer.hpp>
 #include "PushErrorInfo.hpp"
@@ -69,7 +70,7 @@ namespace margelo::nitro::acousticconnectrn {
       virtual std::optional<std::variant<nitro::NullType, std::string>> getStringItemForKey(const std::string& theDefault, const std::string& key, const std::string& moduleName) = 0;
       virtual double getNumberItemForKey(double theDefault, const std::string& key, const std::string& moduleName) = 0;
       virtual bool logCustomEvent(const std::string& eventName, const std::unordered_map<std::string, std::variant<bool, std::string, double>>& values, double level) = 0;
-      virtual bool logSignal(const std::unordered_map<std::string, std::variant<bool, std::string, double>>& values, double level) = 0;
+      virtual bool logSignal(const std::shared_ptr<AnyMap>& values, double level) = 0;
       virtual bool logExceptionEvent(const std::string& message, const std::string& stackInfo, bool unhandled) = 0;
       virtual bool logLocation() = 0;
       virtual bool logLocationWithLatitudeLongitude(double latitude, double longitude, double level) = 0;
