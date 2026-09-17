@@ -28,13 +28,6 @@ import { NAV_CASES } from './screenViewCases'
  * produces repeat screenviews of the same name.
  */
 
-export type BehaviourStackParamList = {
-  Behaviour: undefined
-  ScreenViews: { name: string } | undefined
-  Case: { name: string; caseId: string }
-  WebViewPost: undefined
-}
-
 export function ScreenViewsScreen() {
   const navigation = useNavigation<any>()
 

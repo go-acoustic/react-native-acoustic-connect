@@ -10,11 +10,12 @@ import { Connect } from 'react-native-acoustic-connect-beta'
 import { BehaviourScreen } from '@shared/screens/BehaviourScreen'
 import { IdentityScreen } from '@shared/screens/IdentityScreen'
 import { PushScreen } from '@shared/screens/PushScreen'
-import {
-  ScreenViewsScreen,
-  type BehaviourStackParamList,
-} from '@shared/screens/ScreenViewsScreen'
+import { ScreenViewsScreen } from '@shared/screens/ScreenViewsScreen'
+import type { BehaviourStackParamList } from '@shared/screens/behaviourRoutes'
 import { ScreenViewCaseScreen } from '@shared/screens/ScreenViewCaseScreen'
+import { ShowcaseDetailScreen } from '@shared/screens/ShowcaseDetailScreen'
+import { ShowcaseScreen } from '@shared/screens/ShowcaseScreen'
+import { VerificationScreen } from '@shared/screens/VerificationScreen'
 import { WebViewPostScreen } from '@shared/screens/WebViewPostScreen'
 import { ALL_CASES } from '@shared/screens/screenViewCases'
 import { Colors } from '@shared/theme/colors'
@@ -29,11 +30,12 @@ const Tabs = createBottomTabNavigator<TabParamList>()
 const BehaviourStack = createNativeStackNavigator<BehaviourStackParamList>()
 
 /**
- * The Behaviour tab is a stack, not a single screen. Two of its checks need
- * somewhere to navigate to: the screen-view cases only fire the SDK's
- * screenview logging on a real navigation event, and the WebView form needs a
- * full screen. Pushing and popping is itself part of what the screenview cards
- * measure, so the stack is load-bearing rather than cosmetic.
+ * The Behaviour tab is a stack, not a single screen. Its root is a hub with two
+ * entry points — Showcase (general demo) and Verification (regression checks)
+ * — and several cards need somewhere to navigate to: screen-view logging only
+ * fires on a real navigation event, and the WebView form needs a full screen.
+ * Pushing and popping is itself part of what the screen-view cards show, so
+ * the stack is load-bearing rather than cosmetic.
  */
 function BehaviourNavigator() {
   return (
@@ -50,11 +52,28 @@ function BehaviourNavigator() {
         component={BehaviourScreen}
         options={{ title: 'Behaviour' }}
       />
+      {/* `params.name` is what the SDK reads as the screen name, so the two
+          hub destinations seed it to keep their screen views readable. */}
+      <BehaviourStack.Screen
+        name="Showcase"
+        component={ShowcaseScreen}
+        initialParams={{ name: 'Showcase' }}
+        options={{ title: 'Showcase' }}
+      />
+      <BehaviourStack.Screen
+        name="Verification"
+        component={VerificationScreen}
+        initialParams={{ name: 'Verification' }}
+        options={{ title: 'Verification' }}
+      />
+      <BehaviourStack.Screen
+        name="ShowcaseDetail"
+        component={ShowcaseDetailScreen}
+        options={({ route }) => ({ title: route.params?.name ?? 'Detail' })}
+      />
       <BehaviourStack.Screen
         name="ScreenViews"
         component={ScreenViewsScreen}
-        // `params.name` is what the SDK reads as the screen name, so seeding it
-        // keeps this route's screenviews readable instead of the raw route id.
         initialParams={{ name: 'Screen Views' }}
         options={{ title: 'Screen Views' }}
       />
@@ -108,6 +127,10 @@ function TabIcon({ name, focused }: TabIconProps) {
  * and screen-layout signals, and captures every touch via
  * `onStartShouldSetResponderCapture` so the SDK can record click events.
  *
+ * `captureDialogEvents` additionally intercepts `Alert.alert` so dialog
+ * show / button / dismiss events are logged — the Showcase's Dialogs card
+ * relies on it.
+ *
  * `useNavigationContainerRef()` is the recommended way to give Connect a
  * stable handle on the navigation tree — see Connect.tsx JSDoc. Without
  * this wrapper, only the native side's auto-instrumentation (initial
@@ -117,7 +140,11 @@ function TabIcon({ name, focused }: TabIconProps) {
 export function RootNavigator() {
   const navigationRef = useNavigationContainerRef()
   return (
-    <Connect captureKeyboardEvents navigationRef={navigationRef}>
+    <Connect
+      captureKeyboardEvents
+      captureDialogEvents
+      navigationRef={navigationRef}
+    >
       <NavigationContainer ref={navigationRef}>
         <Tabs.Navigator
           screenOptions={({ route }) => ({

@@ -55,6 +55,9 @@ export default function TabsLayout() {
         options={{
           title: 'Behaviour',
           tabBarIcon: ({ focused }) => <TabIcon icon="📈" focused={focused} />,
+          // `behaviour/` is a nested stack that draws its own header; a second
+          // one from the tab navigator would stack two title bars.
+          headerShown: false,
         }}
       />
     </Tabs>

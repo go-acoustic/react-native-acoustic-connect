@@ -19,7 +19,7 @@ so the two demos look the same side-by-side.
 | ------------------ | ----------------- | ----------------------------------------------------------------------------------------- |
 | **Push**           | Implemented       | Notification authorization status + Request Authorization button (via `pushGetPermissionState` / `pushRequestPermission`). |
 | **Identity**       | Implemented       | Logs `loggedIn` / `accountRegistered` signals with identifier name + value. Recents list. |
-| **Behaviour**      | Empty placeholder | Reserved for the analytics half of the SDK — custom events, signals, clicks, screen views. |
+| **Behaviour**      | Implemented       | Hub with two entry points: **Showcase** (screen views, taps, text + masking, custom events, signals, exceptions, dialogs, modal replay, capture control) and **Verification** (one card per shipped fix, for regression runs). |
 
 This sample exercises the full v19.x push surface on iOS (APNs) and Android
 (FCM) — manual-mode lifecycle forwarding, NSE + NCE rich-media targets,
@@ -264,7 +264,7 @@ neither is needed now:
   both and does not work on Android — React Native folds that value into
   `contentDescription`, the very field the SDK reads as the label.
 
-The Behaviour tab's "Masking covers the accessibility label and hint" card
+The Verification screen's "Masking covers the accessibility label and hint" card
 renders all three shapes so you can confirm the label is redacted in a real
 payload. Note that on a standard (non-custom) mask the label empties and the key
 is dropped from the payload entirely rather than appearing blank.
@@ -563,7 +563,13 @@ App.tsx
             └─ BottomTabs:
                  ├─ Push      → src/screens/PushScreen.tsx
                  ├─ Identity  → src/screens/IdentityScreen.tsx
-                 └─ Behaviour → src/screens/BehaviourScreen.tsx
+                 └─ Behaviour → BehaviourNavigator (stack)
+                      ├─ Behaviour     → shared/screens/BehaviourScreen.tsx (hub)
+                      ├─ Showcase      → shared/screens/ShowcaseScreen.tsx
+                      │    └─ ShowcaseDetail
+                      └─ Verification  → shared/screens/VerificationScreen.tsx
+                           ├─ ScreenViews → Case
+                           └─ WebViewPost
 ```
 
 - **`<Connect>` from the SDK** is the canonical RN integration. It
@@ -609,14 +615,16 @@ import AcousticConnectRN from 'react-native-acoustic-connect-beta'
 </DemoCard>
 ```
 
-This is the recommended pattern for the **Behaviour** tab, which so far
-holds the session-replay modal cards and the signal card; the next pass can
-populate it with demos for `logClickEvent`, `logScreenViewContextLoad`,
-`logExceptionEvent`, and friends.
+This is the pattern the **Showcase** screen uses for every general-purpose
+card. A card that verifies a specific shipped fix belongs on the
+**Verification** screen instead, wrapped in `ScenarioCard` with an entry in
+`shared/verification/scenarios.ts` stating what to do and what a fixed build
+produces. When one body serves both, export it separately (see
+`CustomEventCard.tsx`) and let each screen supply its own frame.
 
 ### Signal card (`logSignal`)
 
-The Behaviour tab's **Log Signal** card sends two payloads so you can compare
+The **Log Signal** card (Showcase and Verification) sends two payloads so you can compare
 them in the posted message: a nested one (an object plus an array of objects)
 and a flat scalar-only one. `logSignal` accepts arbitrary JSON — nesting is
 carried through to the collector unchanged.
