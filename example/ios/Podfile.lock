@@ -1,8 +1,8 @@
 PODS:
-  - AcousticConnectDebug (2.1.26):
-    - AcousticConnectDebug/Core (= 2.1.26)
-  - AcousticConnectDebug/Core (2.1.26)
-  - AcousticConnectRN (19.0.28):
+  - AcousticConnectDebug (2.1.33):
+    - AcousticConnectDebug/Core (= 2.1.33)
+  - AcousticConnectDebug/Core (2.1.33)
+  - AcousticConnectRN (19.0.34):
     - AcousticConnectDebug (>= 2.1.13)
     - boost
     - DoubleConversion
@@ -33,7 +33,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - AcousticConnectRN/UnitTests (19.0.28):
+  - AcousticConnectRN/UnitTests (19.0.34):
     - AcousticConnectDebug (>= 2.1.13)
     - boost
     - DoubleConversion
@@ -2658,8 +2658,8 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
-  AcousticConnectDebug: c86d18f6069cabfe8194c22fac7a603cd46f9266
-  AcousticConnectRN: 55c3bd3b56d27d0ab2e859f491dc130287a8e2c3
+  AcousticConnectDebug: fc0200241f669f310b700ff8b3e07d25490095ec
+  AcousticConnectRN: 07b3b8d1d650c65791628a34e1d7bfd2863d79ac
   boost: 7e761d76ca2ce687f7cc98e698152abd03a18f90
   DoubleConversion: cb417026b2400c8f53ae97020b2be961b59470cb
   fast_float: b32c788ed9c6a8c584d114d0047beda9664e7cc6

@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react'
-import { Platform, StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 import AcousticConnectRN from 'react-native-acoustic-connect'
 import { ScenarioCard } from './ScenarioCard'
 import { PrimaryButton } from './buttons'
@@ -7,18 +7,16 @@ import { Colors } from '../theme/colors'
 import { SCENARIOS } from '../verification/scenarios'
 
 /**
- * Verifies that custom-event values reach the collector as values rather than
- * as their Kotlin wrapper form.
+ * `logCustomEvent` demo body, shared by the Showcase (inside a plain DemoCard)
+ * and the Verification screen (inside a ScenarioCard).
  *
- * The payload deliberately mixes all three types the bridge accepts, because
- * the bug was in the variant unwrapping and every type went through the same
- * broken path. Read the `customEvent` values in the posted message: a string
- * must be `pro`, not `Second(value=pro)`.
+ * The payload deliberately mixes all three value types the bridge accepts. On
+ * the verification side that matters because the unwrapping bug hit every type
+ * through the same path: a string must arrive as `pro`, not `Second(value=pro)`.
  *
  * One cross-platform wrinkle worth expecting rather than reporting as a defect:
  * a JS number crosses the bridge as a double, so Android renders `2` as `2.0`
- * while iOS keeps `2`. The fix was about unwrapping, not about number
- * formatting.
+ * while iOS keeps `2`.
  */
 
 const PAYLOAD = {
@@ -27,20 +25,20 @@ const PAYLOAD = {
   seats: 2,
 }
 
-export function CustomEventCard() {
+export function CustomEventBody() {
   const [result, setResult] = useState<string | null>(null)
 
   const send = useCallback(() => {
     const ok = AcousticConnectRN.logCustomEvent('demoCustomEvent', PAYLOAD, 1)
     setResult(
-      `${ok ? '✓' : '✗'} queued — expect tier="pro", isTrial="false", seats="${
-        Platform.OS === 'android' ? '2.0' : '2'
-      }"`
+      `${
+        ok ? '✓' : '✗'
+      } queued demoCustomEvent — read customEvent in the posted message`
     )
   }, [])
 
   return (
-    <ScenarioCard scenario={SCENARIOS['custom-event-value-types']}>
+    <>
       <View style={styles.payloadBox}>
         <Text style={styles.mono}>{JSON.stringify(PAYLOAD, null, 2)}</Text>
       </View>
@@ -54,6 +52,15 @@ export function CustomEventCard() {
           {result}
         </Text>
       ) : null}
+    </>
+  )
+}
+
+/** Verification frame: the body under its scenario's Do / Expect text. */
+export function CustomEventCard() {
+  return (
+    <ScenarioCard scenario={SCENARIOS['custom-event-value-types']}>
+      <CustomEventBody />
     </ScenarioCard>
   )
 }

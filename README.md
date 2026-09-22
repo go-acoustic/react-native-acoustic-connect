@@ -106,6 +106,29 @@ directories, and re-running either command is safe. After install, run
 `npx acoustic-connect doctor` to validate the result — see
 [Setup CLI](#setup-cli-acoustic-connect) below.
 
+### Where the Android Connect SDK is resolved from
+
+You don't need to add any repositories. This package's `android/build.gradle`
+declares both of the ones it needs, and your app inherits them:
+
+| Repository | Carries |
+| --- | --- |
+| [`go-acoustic/Android_Maven`](https://github.com/go-acoustic/Android_Maven) | Beta builds (`-beta` versions) |
+| Maven Central | Release builds and the older version history |
+
+Beta artifacts are published only to the GitHub-hosted repository, so a build
+that does not declare it never sees them. When `AndroidVersion` is empty the
+version is resolved dynamically, and Gradle takes the newest match across
+*both* repositories — the beta repository does not need to be consulted first
+for a new beta to win. It is scoped to the `io.github.go-acoustic` group, so
+nothing else in your build is routed through it, and Maven Central still
+answers for any version the beta repository does not carry.
+
+This matters when you pin. Leaving `AndroidVersion` empty resolves the newest
+version in the supported range across **both** repositories — which, for as
+long as betas are the newest builds, means a `-beta`. Pin `AndroidVersion` to
+a specific release if you would rather track Maven Central's release line.
+
 ## Setup CLI (`acoustic-connect`)
 
 The package ships a small CLI, installed as `acoustic-connect` (invoke it with
@@ -363,7 +386,7 @@ screen / touch / keyboard tracking) can skip it entirely.
 ### 3. Log events (imperative, anywhere)
 
 ```ts
-import AcousticConnectRN from 'react-native-acoustic-connect'
+import AcousticConnectRN, { TLTRN } from 'react-native-acoustic-connect'
 
 // Custom application event (flat key/value pairs)
 AcousticConnectRN.logCustomEvent('checkout_started', { cartId: 'abc' }, 1)
@@ -377,8 +400,12 @@ AcousticConnectRN.logSignal(
   1
 )
 
-// Force a logical screen name (e.g. for non-NavigationContainer screens)
+// Force a logical screen name (e.g. for non-NavigationContainer screens).
+// Sets the name that later events are attributed to — it does not itself emit
+// a screen view or capture a layout. For a screen <Connect> cannot see, follow
+// it with logScreenLayout, which does both.
 AcousticConnectRN.setCurrentScreenName('CheckoutScreen')
+TLTRN.logScreenLayout('CheckoutScreen')
 
 // Manual exception capture
 AcousticConnectRN.logExceptionEvent(
@@ -952,6 +979,13 @@ The strict constraint at `[11.0.11, 12.0.0)` is rejecting your pin. Bump
 leave it empty for the newest 11.x available). 12.x is intentionally outside
 the supported range pending compatibility validation — track that work
 separately if you need it.
+
+If the version you pinned is a `-beta`, check that your build can reach
+[`go-acoustic/Android_Maven`](https://github.com/go-acoustic/Android_Maven) —
+beta artifacts live there rather than on Maven Central. This package declares
+that repository for you, so a failure here usually means the build is offline
+or behind a proxy that blocks `raw.githubusercontent.com`. See
+[Where the Android Connect SDK is resolved from](#where-the-android-connect-sdk-is-resolved-from).
 
 ### Gradle can't find `node`
 

@@ -1,3 +1,33 @@
+## 19.0.34 (2026-09-22)
+
+### Reverts
+
+* Revert "Beta ReactNativeConnect build: 18.0.36" ([609ad7d](https://github.com/go-acoustic/react-native-acoustic-connect/commit/609ad7d3244ec06f27dced5864d40585c5b3c9cf))
+## 19.0.33 (2026-09-22)
+
+### Reverts
+
+* Revert "Beta ReactNativeConnect build: 18.0.36" ([609ad7d](https://github.com/go-acoustic/react-native-acoustic-connect/commit/609ad7d3244ec06f27dced5864d40585c5b3c9cf))
+## 19.0.32 (2026-09-22)
+
+### Reverts
+
+* Revert "Beta ReactNativeConnect build: 18.0.36" ([609ad7d](https://github.com/go-acoustic/react-native-acoustic-connect/commit/609ad7d3244ec06f27dced5864d40585c5b3c9cf))
+## 19.0.31 (2026-09-22)
+
+### Reverts
+
+* Revert "Beta ReactNativeConnect build: 18.0.36" ([609ad7d](https://github.com/go-acoustic/react-native-acoustic-connect/commit/609ad7d3244ec06f27dced5864d40585c5b3c9cf))
+## 19.0.30 (2026-09-21)
+
+### Reverts
+
+* Revert "Beta ReactNativeConnect build: 18.0.36" ([609ad7d](https://github.com/go-acoustic/react-native-acoustic-connect/commit/609ad7d3244ec06f27dced5864d40585c5b3c9cf))
+## 19.0.29 (2026-09-17)
+
+### Reverts
+
+* Revert "Beta ReactNativeConnect build: 18.0.36" ([609ad7d](https://github.com/go-acoustic/react-native-acoustic-connect/commit/609ad7d3244ec06f27dced5864d40585c5b3c9cf))
 ## 19.0.28 (2026-09-14)
 
 ### Reverts

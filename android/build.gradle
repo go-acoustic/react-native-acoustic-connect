@@ -173,6 +173,39 @@ repositories {
 allprojects {
     repositories {
         google()
+
+        // Beta Connect artifacts publish HERE, not to Maven Central. Central is
+        // still consulted below — it carries every version up to 11.0.31-beta —
+        // but newer betas land only in this GitHub-hosted Maven tree, so a build
+        // that does not know about it silently freezes `connect:+` at whatever
+        // Central happens to hold. That failure is invisible: resolution
+        // succeeds, just against a stale SDK, and the gap widens with each beta.
+        //
+        // Declaring it is what fixes that; the position is close to cosmetic.
+        // `connect` is resolved through a dynamic version, and for those Gradle
+        // queries every declared repository and takes the newest match across
+        // all of them rather than stopping at the first repository that answers.
+        // Verified: with this entry declared LAST, after mavenCentral(),
+        // `connect:+` still resolves to the newest beta here rather than to
+        // Central's older newest. Order only decides which repository serves a
+        // PINNED version that both carry, where the artifact is identical
+        // anyway — it is kept first so a pin on a beta is served by the tree
+        // that is authoritative for betas.
+        //
+        // The content filter is not cosmetic. Without it every dependency in
+        // the build (React Native, Kotlin, AndroidX, …) would hit
+        // raw.githubusercontent and 404 before falling through to a repository
+        // that has it. Inclusive `content`, not `exclusiveContent`, so Central
+        // still answers for versions this tree does not carry.
+        //
+        // Declared only here, not also in the top-level `repositories` block:
+        // `allprojects` covers this project too, so both would feed the same
+        // resolution and the pair could drift.
+        maven {
+            url = "https://raw.githubusercontent.com/go-acoustic/Android_Maven/master"
+            content { includeGroup "io.github.go-acoustic" }
+        }
+
         mavenCentral()
         maven { url="https://s01.oss.sonatype.org/content/groups/staging" }
 

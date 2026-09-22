@@ -14,7 +14,9 @@ is consumed verbatim by both — there is no forked copy to keep in sync.
 theme/       brand colors (mirror the iOS sample asset catalog)
 components/  LogoHeader, buttons, DemoCard, StatusRow, DemoTextField
 services/    ConnectSDKManager (SDK wrapper), pushPermission, useManagerState
-screens/     PushScreen, IdentityScreen, BehaviourScreen
+screens/     PushScreen, IdentityScreen, BehaviourScreen (hub) → ShowcaseScreen,
+             VerificationScreen and their pushed screens
+verification/ scenarios.ts — registry of shipped fixes the Verification screen checks
 ```
 
 These files depend only on `react`, `react-native`,

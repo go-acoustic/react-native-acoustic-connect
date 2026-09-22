@@ -70,7 +70,11 @@ export default function RootLayout() {
   }
 
   return (
-    <Connect captureKeyboardEvents navigationRef={navigationRef}>
+    <Connect
+      captureKeyboardEvents
+      captureDialogEvents
+      navigationRef={navigationRef}
+    >
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false }} />
     </Connect>

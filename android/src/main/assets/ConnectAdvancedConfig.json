@@ -24,7 +24,7 @@
     "IpPlaceholder": "N/A",
     "KillSwitchAsync": true,
     "KillSwitchDelay": 300,
-    "LibraryVersion": "11.0.13",
+    "LibraryVersion": "11.0.36",
     "LogFullRequestResponsePayloads": true,
     "MessageTypeHeader": "WorklightHit",
     "MessageTypes": "4,5",

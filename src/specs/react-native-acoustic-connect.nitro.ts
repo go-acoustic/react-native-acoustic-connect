@@ -235,6 +235,18 @@ export interface AcousticConnectRN extends HybridObject<{ ios: 'swift', android:
     logLocationWithLatitudeLongitude(latitude: number, longitude: number, level: number): boolean
     logClickEvent(target: number, controlId: string): boolean
     logTextChangeEvent(target: number, controlId: string, text: string | null | undefined): boolean
+    /**
+     * Sets the logical screen name subsequent events are attributed to.
+     *
+     * Sets the name and nothing else — no screenview, no layout capture — on
+     * both platforms. `<Connect>` calls this on every touch so the click that
+     * follows lands on the right screen, so it has to stay cheap.
+     *
+     * Android used to route it through `Connect.resumeConnect`, which also
+     * emitted a screenview and captured a full layout, putting tens to hundreds
+     * of KB on the wire per tap where iOS sent none. Use `logScreenLayout` when
+     * a layout capture is what you want.
+     */
     setCurrentScreenName(logicalPageName: string): boolean
     logScreenViewContextLoad(logicalPageName: string | null | undefined, referrer:string | null | undefined): boolean
     logScreenViewContextUnload(logicalPageName: string | null | undefined, referrer:string | null | undefined): boolean

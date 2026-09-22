@@ -913,12 +913,6 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
     }
 
     /**
-     * Requests that the framework save the current application page name.
-     *
-     * @param logicalPageName The logical page name to be set.
-     * @return True if the operation was successful, false otherwise.
-     */
-    /**
      * Whether the bridge may touch capture at all.
      *
      * `disable()` reaches `Tealeaf.disable()`, which unregisters the activity
@@ -926,7 +920,7 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
      * `<Connect>` only advances the current screen name. On Android the same
      * component also drives capture explicitly on every navigation
      * (`logScreenViewPageName` + `logScreenLayout`), and those paths used to run
-     * regardless of the flag: `setCurrentScreenName` calls through to
+     * regardless of the flag: `setCurrentScreenName` called through to
      * `Tealeaf.resumeTealeaf`, which resumes logging, and `logScreenLayout`
      * captured a full layout. The net effect was that `disable()` silenced
      * capture on iOS but not on Android, for an app doing nothing unusual.
@@ -936,11 +930,60 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
      */
     private fun isCaptureAllowed(): Boolean = Connect.isEnabled()
 
+    /**
+     * Requests that the framework save the current application page name.
+     *
+     * Sets the name and nothing else, which is what the name promises and what
+     * iOS has always done — `TLFApplicationHelper.setCurrentScreenName:` just
+     * assigns `TLFScreenViewManager`'s current screen view name.
+     *
+     * `<Connect>` calls this on every touch: `onStartShouldSetResponderCapture`
+     * needs the name current so the click that follows is attributed to the
+     * right screen. It therefore has to be cheap, and on Android it was not. It
+     * used to be `Connect.resumeConnect` → `Tealeaf.resumeTealeaf`, which does
+     * four things at once: sets the name, emits a screenview LOAD, re-arms
+     * capture, and **captures a full screen layout**. Only the first is wanted
+     * here. The layout put a message of tens to hundreds of KB on the wire per
+     * tap on Android, where the same call on iOS sends nothing.
+     *
+     * That volume is not merely wasteful. EOCore's disk cache holds at most
+     * `MaxNumberOfFilesToCache` (5) chunks between post cycles and silently
+     * discards the rest while posting is healthy, so a tap-heavy screen loses
+     * whole batches: in a customer session, a `DeliveryOptionsScreen` LOAD and
+     * the first 8 s of capture on it went missing that way.
+     *
+     * Dropping the re-arm with it is safe, and was verified on-device rather
+     * than assumed: `logScreenLayout` below still calls `resumeConnect` on
+     * every navigation and on first paint, which arms capture before any touch
+     * can reach this method. Measured on the bare-workflow sample, twelve taps
+     * on one screen went from 21 layout messages (586 KB) to 4 (67 KB) with all
+     * twelve clicks still captured.
+     *
+     * Screenview and layout belong to the navigation path, which goes through
+     * `logScreenLayout` below and is unchanged.
+     *
+     * @param logicalPageName The logical page name to be set.
+     * @return True if the operation was successful, false otherwise.
+     */
     override fun setCurrentScreenName(logicalPageName: String): Boolean {
-        // resumeConnect resumes logging, so this must not run while disabled.
+        // Nothing should advance capture state while disabled. Cheaper than it
+        // was — this no longer captures a layout — but still the wrong thing to
+        // do behind a `disable()`.
         if (!isCaptureAllowed()) return false
-        val result = resumeConnect(getCurrentActivity(), logicalPageName, false)
-        return result
+        // Guarded because of where this runs, not because the call is expected to
+        // fail: `<Connect>` invokes it from `onStartShouldSetResponderCapture`, so
+        // this is the one bridge method on the per-touch path. An exception out of
+        // the SDK here would surface inside React's responder negotiation on every
+        // tap, taking touch handling down with it. Report the failure instead — the
+        // click that follows is then attributed to the previous screen, which is
+        // wrong but survivable.
+        return try {
+            Connect.setCurrentLogicalPageName(logicalPageName)
+            true
+        } catch (e: Exception) {
+            Log.v(TAG, "setCurrentScreenName error: ${e.message}")
+            false
+        }
     }
 
     /**
@@ -992,13 +1035,17 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
     override fun logScreenLayout(name: String, delay: Double): Boolean {
         // The wrapper calls this on every Android navigation.
         if (!isCaptureAllowed()) return false
-        // Advisory on purpose: a false here means the screen name did not advance,
+        // Resume explicitly rather than via `setCurrentScreenName`, which now only
+        // sets the name. Navigation is where resuming belongs: `resumeTealeaf`
+        // re-enables capture for the screen being entered (`_isCaptureScreenContentsEnabled`)
+        // after a `pauseTealeaf`, honouring the screen's layout config. Calling it
+        // here keeps this path byte-identical to what it did before that split.
+        //
+        // The result is advisory on purpose: a false means the resume did not take,
         // which is not a reason to skip the screenview and layout that follow — they
         // are what the caller asked for. Treating it as fatal would suppress capture
-        // in cases that capture fine today. The guard inside setCurrentScreenName is
-        // redundant against the check above and deliberately left in, so the method
-        // stays safe for callers that reach it directly.
-        setCurrentScreenName(name)
+        // in cases that capture fine today.
+        resumeConnect(getCurrentActivity(), name, false)
         // The 3-arg overload takes a nullable Activity, so this one is safe to pass
         // through — unlike the 4-arg overload the context methods use.
         logScreenview(getCurrentActivity(), name, ScreenviewType.LOAD)

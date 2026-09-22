@@ -23,7 +23,11 @@ what bare-workflow wires by hand.
 - **Push** tab — notification-permission status + Request Authorization
   (tri-state, refreshes on foreground).
 - **Identity** tab — log `loggedIn` / `accountRegistered` identity signals.
-- **Behaviour** tab — placeholder for the analytics surface.
+- **Behaviour** tab — hub with two entry points: **Showcase** (what the SDK
+  captures: screen views, taps, text + masking, custom events, signals,
+  exceptions, dialogs, modal replay) and **Verification** (regression checks
+  for shipped fixes). The WebView POST check shows an "unavailable" note here
+  instead of a button — this app does not depend on `react-native-webview`.
 
 The SDK **auto-initialises** at module load from `ConnectConfig.json`; there is
 no JS-side `enable(appKey, postURL, …)` — `enable()` is parameterless and only
