@@ -1,6 +1,6 @@
 import React from 'react'
 import { ScrollView, StyleSheet, Text } from 'react-native'
-import { useNavigation } from '@react-navigation/native'
+import { useNavigation } from '@sample/navigation'
 import { CaptureControlCard } from '../components/CaptureControlCard'
 import { ClickCaptureCard } from '../components/ClickCaptureCard'
 import { CustomEventBody } from '../components/CustomEventCard'

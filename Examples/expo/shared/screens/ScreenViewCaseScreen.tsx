@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
-import { useNavigation, useRoute } from '@react-navigation/native'
+import { useNavigation, useRoute } from '@sample/navigation'
 import AcousticConnectRN from 'react-native-acoustic-connect-beta'
 import { DemoCard } from '../components/DemoCard'
 import { describeName } from '../components/DirectScreenViewCard'

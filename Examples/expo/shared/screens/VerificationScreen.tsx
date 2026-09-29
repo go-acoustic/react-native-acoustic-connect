@@ -1,6 +1,6 @@
 import React from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
-import { useNavigation } from '@react-navigation/native'
+import { useNavigation } from '@sample/navigation'
 import { DemoCard } from '../components/DemoCard'
 import { AccessibilityMaskCard } from '../components/AccessibilityMaskCard'
 import { CaptureControlCard } from '../components/CaptureControlCard'

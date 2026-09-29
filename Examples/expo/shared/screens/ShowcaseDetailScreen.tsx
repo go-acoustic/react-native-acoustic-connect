@@ -1,6 +1,6 @@
 import React from 'react'
 import { ScrollView, StyleSheet, Text } from 'react-native'
-import { useNavigation, useRoute } from '@react-navigation/native'
+import { useNavigation, useRoute } from '@sample/navigation'
 import { DemoCard } from '../components/DemoCard'
 import { PrimaryButton, SecondaryButton } from '../components/buttons'
 import { Colors } from '../theme/colors'

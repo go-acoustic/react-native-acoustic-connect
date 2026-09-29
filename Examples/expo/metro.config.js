@@ -47,6 +47,7 @@ const sharedDir = fs.existsSync(siblingShared)
 // `@shared` alias is wired regardless so an absent dir surfaces as a clear
 // "Unable to resolve" rather than an opaque watcher crash.
 const sharedExists = fs.existsSync(sharedDir);
+const sampleNavigation = path.resolve(projectRoot, 'src', 'navigation', 'sampleNavigation');
 config.watchFolders = [
   ...(config.watchFolders ?? []),
   ...(sharedExists ? [sharedDir] : []),
@@ -67,6 +68,13 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       subpath ? path.join(sharedDir, subpath) : sharedDir,
       platform
     );
+  }
+  // `@sample/navigation` is the router hooks the shared screens use, bound to
+  // this app's router. Without it they would import `@react-navigation/native`,
+  // which expo-router rejects from app code as of Expo SDK 56. See
+  // src/navigation/sampleNavigation.ts.
+  if (moduleName === '@sample/navigation') {
+    return context.resolveRequest(context, sampleNavigation, platform);
   }
   return context.resolveRequest(context, moduleName, platform);
 };
