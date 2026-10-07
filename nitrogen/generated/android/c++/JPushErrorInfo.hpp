@@ -18,7 +18,7 @@ namespace margelo::nitro::acousticconnectrn {
   using namespace facebook;
 
   /**
-   * The C++ JNI bridge between the C++ struct "PushErrorInfo" and the the Kotlin data class "PushErrorInfo".
+   * The C++ JNI bridge between the C++ struct "PushErrorInfo" and the Kotlin data class "PushErrorInfo".
    */
   struct JPushErrorInfo final: public jni::JavaClass<JPushErrorInfo> {
   public:

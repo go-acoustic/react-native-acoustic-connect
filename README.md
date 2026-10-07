@@ -9,22 +9,50 @@ For the full product overview see the
 
 ## Requirements
 
-- React Native 0.82.x – 0.85.x with the new architecture
-- React 19.1.1 or newer (or whatever your RN version pins)
-- `react-native-nitro-modules` at the **exact** version this package pins in `peerDependencies` (currently **`0.35.9`**) — your app must resolve exactly this version; see [Nitro version pin](#nitro-version-pin)
-- Node 20 or newer
-- JDK 17 or newer for Android builds — the same JDK React Native 0.82 itself
-  requires. The Android module compiles at Java 17; newer JDKs work.
-- iOS deployment target ≥ 15.1, AcousticConnect / AcousticConnectDebug pod ≥ 2.0.5
-- Android `minSdk` ≥ 26, `compileSdk` ≥ 35, `io.github.go-acoustic:connect` in `[11.0.11, 12.0.0)`
-- **Expo SDK 55+ is supported** via the bundled Expo Config Plugin —
+These requirements apply to SDK **19.1** and later. If your app is on React Native
+0.82 or 0.83, or on Expo SDK 55, use SDK **19.0.x** instead — see
+[Which SDK version do I need?](#which-sdk-version-do-i-need).
+
+- React Native 0.84.x – 0.87.x with the new architecture. **0.82.x and 0.83.x are not supported from 19.1** — the Nitro version 19.1 pins (`0.37.1`) fails to build on RN 0.83's iOS target.
+- React 19.2.3 or newer — every React Native version in the supported range (0.84 through 0.87) pins `^19.2.3`
+- `react-native-nitro-modules` at the **exact** version this package pins in `peerDependencies` (**`0.37.1`** for 19.1; 19.0.x pins `0.35.9`) — your app must resolve exactly this version; see [Nitro version pin](#nitro-version-pin)
+- Node 20.19.4 or newer for RN 0.84–0.86. **RN 0.87 requires Node 22.13 or newer** (`^22.13.0 || ^24.3.0 || >= 26`) and will not install on Node 20 at all
+- JDK 17 or newer for Android builds — the same JDK React Native itself requires.
+  The Android module compiles at Java 17; newer JDKs work.
+- iOS deployment target ≥ 15.1, AcousticConnect / AcousticConnectDebug pod ≥ 2.1.51
+- Android `minSdk` ≥ 26, `compileSdk` ≥ 35, `io.github.go-acoustic:connect` in `[11.1.16-beta, 12.0.0)` (Connect Android 11.1 or newer)
+- **Expo SDK 56+ is supported** from 19.1 (Expo SDK 55 → use 19.0.x) via the bundled Expo Config Plugin —
   development builds only (Expo Go is not supported); see
-  [Using with Expo SDK 55+](#using-with-expo-sdk-55).
+  [Using with Expo SDK 56+](#using-with-expo-sdk-56).
+
+### Which SDK version do I need?
+
+| Your app | SDK line | `react-native-nitro-modules` |
+| --- | --- | --- |
+| React Native 0.84 – 0.87, or Expo SDK 56 / 57 | **19.1.x** | exactly `0.37.1` |
+| React Native 0.82 – 0.83, or Expo SDK 55 | **19.0.x** (latest `19.0.36`) | exactly `0.35.9` |
+
+React Native 0.84 – 0.86 work with either line; 0.87 needs 19.1.
+
+### Upgrading from 19.0.x to 19.1
+
+No JavaScript API changed — your app code stays as it is. The upgrade is about
+versions only:
+
+1. Move to React Native **0.84 or newer** and React **19.2.3 or newer** (on Expo,
+   SDK **56 or newer**). React Native 0.87 also needs Node **22.13 or newer**.
+2. Upgrade the SDK and Nitro **together** — the Nitro version must match exactly:
+
+   ```bash
+   npm install react-native-acoustic-connect@^19.1.1 react-native-nitro-modules@0.37.1
+   ```
+
+3. iOS: `cd ios && pod install`. Expo: re-run `npx expo prebuild`.
 
 ### Nitro version pin
 
 This package pins `react-native-nitro-modules` to an **exact version**
-(currently **`0.35.9`**) in its `peerDependencies` — deliberately *not* a range.
+(**`0.37.1`** as of 19.1; `0.35.9` on 19.0.x) in its `peerDependencies` — deliberately *not* a range.
 **Your app must resolve exactly that version.**
 
 **Why (important): Nitro patch releases can contain breaking changes.** The SDK
@@ -78,7 +106,7 @@ Field summary (see [API reference](#api-reference) for full semantics):
 | `AppKey` | _(required)_ | Your Connect application key. |
 | `PostMessageUrl` | _(required)_ | Collector endpoint URL. |
 | `KillSwitchUrl` | _(optional)_ | Kill-switch endpoint URL. |
-| `useRelease` | `false` | `true` selects the release AcousticConnect iOS pod over the debug variant. |
+| `useRelease` | `false` | Release vs. beta native SDKs. iOS: `true` selects the release AcousticConnect pod over the debug variant. Android: `false` resolves Connect from the GitHub-hosted beta Maven repository (betas are not published to Maven Central); `true` resolves from Maven Central only and rejects beta versions. If your `settings.gradle` sets `repositoriesMode` to `PREFER_SETTINGS`, project repositories are ignored, so add the beta repository there yourself — the build prints the exact entry. |
 | `iOSVersion` | `""` | Pin a specific iOS pod version; empty = newest in the supported range. |
 | `AndroidVersion` | `""` | Pin a specific Android Connect SDK version; empty = newest in the supported range. |
 | `PushEnabled` | `false` | Master switch. On Android, also gates the `connect-push-fcm` artifact inclusion. |
@@ -184,9 +212,11 @@ CocoaPods, so most Mac dev setups already have it).
 Requires macOS and `Connect.iOSAppGroupIdentifier` already set in
 `ConnectConfig.json` — run `doctor` first if it's missing.
 
-## Using with Expo SDK 55+
+## Using with Expo SDK 56+
 
-Expo SDK 55 and newer is supported via the bundled Expo Config Plugin.
+Expo SDK 56 and newer is supported via the bundled Expo Config Plugin.
+SDK 55 is **not** supported by this release line: it ships React Native 0.83.10,
+below this SDK's 0.84 floor. SDK 56 ships 0.85.3 and SDK 57 ships 0.86.3.
 **Development builds only** — Expo Go is not supported: Nitro Modules and
 native push registration require native code that Expo Go cannot load. There
 is no runtime Expo Go detection or fallback; use
@@ -196,7 +226,7 @@ or EAS Build.
 ### Install
 
 ```bash
-npx create-expo-app@latest my-app    # Expo SDK 55+, new architecture enabled
+npx create-expo-app@latest my-app    # Expo SDK 56+, new architecture enabled
 cd my-app
 npx expo install expo-dev-client expo-build-properties
 npm install react-native-acoustic-connect react-native-nitro-modules
@@ -507,14 +537,13 @@ AcousticConnectRN.logSignal(pageView, 1)
 > at the top level but dropped a top-level number. Numbers nested inside an
 > object or array were never affected on either platform.
 >
-> Both versions sit inside the `[11.0.11, 12.0.0)` range this package accepts,
-> and the Android dependency floats to the newest published build unless you pin
-> it, so most integrations get the new behaviour. Nest the number if you pin an
-> older one:
+> The Android versions in that note are below the `[11.1.16-beta, 12.0.0)` range this
+> package accepts, so every supported Android version carries a top-level number.
+> Nesting the number stays portable across both platforms:
 >
 > ```ts
 > AcousticConnectRN.logSignal({ cart: { items: 3 } }, 1) // any supported version
-> AcousticConnectRN.logSignal({ items: 3 }, 1)           // iOS, + Android 11.0.24-beta and newer
+> AcousticConnectRN.logSignal({ items: 3 }, 1)           // any supported version
 > ```
 
 ### `AcousticConnectRN.logCustomEvent(eventName, values, level): boolean`
@@ -966,15 +995,15 @@ that **changing `android.package` requires a clean prebuild**
 (`npx expo prebuild --platform android --clean`); an incremental prebuild keeps
 the stale `applicationId`.
 
-### iOS — `pod install` fails with `[Connect] requires AcousticConnect >= 2.0.5`
+### iOS — `pod install` fails with `[Connect] requires AcousticConnect >= 2.1.51`
 
 You've pinned an older `iOSVersion` in `ConnectConfig.json`. Bump it to a
-2.0.5+ release (or leave it empty for the newest available) and re-run
+2.1.51 or newer (or leave it empty for the newest available) and re-run
 `pod install`.
 
 ### Android — Gradle resolution fails on `io.github.go-acoustic:connect`
 
-The strict constraint at `[11.0.11, 12.0.0)` is rejecting your pin. Bump
+The strict constraint at `[11.1.16-beta, 12.0.0)` is rejecting your pin. Bump
 `AndroidVersion` in `ConnectConfig.json` to a release within that range (or
 leave it empty for the newest 11.x available). 12.x is intentionally outside
 the supported range pending compatibility validation — track that work

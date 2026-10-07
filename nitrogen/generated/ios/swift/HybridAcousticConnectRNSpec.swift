@@ -42,9 +42,9 @@ public protocol HybridAcousticConnectRNSpec_protocol: HybridObject {
   func pushDidFailToRegister(error: PushErrorInfo) throws -> Promise<Bool>
   func pushDidReceiveNotification(userInfo: Dictionary<String, Variant_Bool_String_Double>) throws -> Promise<Bool>
   func pushDidReceiveResponse(actionIdentifier: String, userInfo: Dictionary<String, Variant_Bool_String_Double>) throws -> Promise<Bool>
-  func pushDidReceiveAuthorization(granted: Variant_NullType_Bool?, error: PushErrorInfo?) throws -> Promise<Bool>
+  func pushDidReceiveAuthorization(granted: Variant_Bool_NullType?, error: PushErrorInfo?) throws -> Promise<Bool>
   func pushRequestPermission() throws -> Promise<PushPermissionResult>
-  func pushGetPermissionState() throws -> Promise<Variant_NullType_Bool>
+  func pushGetPermissionState() throws -> Promise<Variant_Bool_NullType>
 }
 
 public extension HybridAcousticConnectRNSpec_protocol {

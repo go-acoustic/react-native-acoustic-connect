@@ -165,6 +165,56 @@ android {
   }
 }
 
+// Read consumer config at script-evaluation time so the right Connect Android
+// artifact is selected without depending on config.gradle's text-rewriting
+// pass (which only matches the analytics artifact name). Read first, because
+// the repositories below depend on it:
+//   - `PushEnabled` picks between the analytics-only and push-fcm artifacts.
+//   - `AndroidVersion` (when set) pins the version against the active artifact.
+//   - `useRelease` picks where Connect comes from (see `allprojects` below).
+import groovy.json.JsonSlurper
+def acousticConfigFile = new File("$rootDir/../ConnectConfig.json")
+def acousticConfig = acousticConfigFile.exists()
+  ? new JsonSlurper().parse(acousticConfigFile)
+  : [Connect: [:]]
+def acousticPushEnabled = (acousticConfig.Connect?.PushEnabled ?: false).toString().toBoolean()
+def acousticUseRelease = (acousticConfig.Connect?.useRelease ?: false).toString().toBoolean()
+def acousticVersionPin = (acousticConfig.Connect?.AndroidVersion ?: '').trim()
+def acousticVersion = acousticVersionPin.isEmpty() ? '+' : acousticVersionPin
+def acousticArtifact = acousticPushEnabled ? 'connect-push-fcm' : 'connect'
+
+println "AcousticConnectRN: PushEnabled=$acousticPushEnabled, useRelease=$acousticUseRelease, artifact=io.github.go-acoustic:$acousticArtifact:$acousticVersion"
+
+// The supported Connect Android range — the same bounds as the `strictly`
+// constraints below. Checked up front because the constraint cannot reject a
+// pin on its own: a strict range is itself a request for the newest version in
+// range, so an out-of-range pin was silently replaced by that version.
+// The lower bound is the first published Connect Android build with everything
+// the bridge relies on: the Connect APIs it calls (`canTakeScreenShot`,
+// `getLayoutInfo`, `logDialogLayout`, from 11.1.1-beta), the screen-view fix
+// that logs a return to a screen after one that is not captured (11.1.13-beta),
+// and password fields captured as dots rather than as typed (11.1.16-beta).
+// Gradle orders `11.1.16-beta` below `11.1.16` (a `-beta` qualifier sorts before
+// the release with the same numbers), so the range admits the 11.1.16 release
+// and everything newer. The numeric pin check below ignores qualifiers, so it
+// compares against the bare [11, 1, 16].
+def acousticMinVersion = [11, 1, 16]
+def acousticMinVersionQualifier = '-beta'
+def acousticMaxVersionExclusive = [12, 0, 0]
+def acousticSupportedRange = "[${acousticMinVersion.join('.')}${acousticMinVersionQualifier}, ${acousticMaxVersionExclusive.join('.')})"
+if (!acousticVersionPin.isEmpty()) {
+  def m = acousticVersionPin =~ /^(\d+)\.(\d+)\.(\d+)/
+  def compare = { a, b -> [a, b].transpose().collect { x, y -> x <=> y }.find { it != 0 } ?: 0 }
+  def parts = m.find() ? [m.group(1), m.group(2), m.group(3)].collect { it as int } : null
+  if (parts == null || compare(parts, acousticMinVersion) < 0 || compare(parts, acousticMaxVersionExclusive) >= 0) {
+    throw new GradleException(
+      "AcousticConnectRN: ConnectConfig.json Connect.AndroidVersion '$acousticVersionPin' is outside the " +
+      "supported Connect Android range $acousticSupportedRange. " +
+      "Set a version in that range, or leave it empty to use the newest."
+    )
+  }
+}
+
 repositories {
   mavenCentral()
   google()
@@ -174,36 +224,33 @@ allprojects {
     repositories {
         google()
 
-        // Beta Connect artifacts publish HERE, not to Maven Central. Central is
-        // still consulted below — it carries every version up to 11.0.31-beta —
-        // but newer betas land only in this GitHub-hosted Maven tree, so a build
-        // that does not know about it silently freezes `connect:+` at whatever
-        // Central happens to hold. That failure is invisible: resolution
-        // succeeds, just against a stale SDK, and the gap widens with each beta.
+        // `useRelease` decides where Connect comes from, for this module AND —
+        // via config.gradle, which declares the same switch in the consuming
+        // app — for the APK. The two must agree: this module compiles against
+        // whatever it resolves here, while the app packages what the app
+        // resolves, and a bridge compiled against a newer Connect than the APK
+        // carries fails at runtime with NoSuchMethodError, not at build time.
         //
-        // Declaring it is what fixes that; the position is close to cosmetic.
-        // `connect` is resolved through a dynamic version, and for those Gradle
-        // queries every declared repository and takes the newest match across
-        // all of them rather than stopping at the first repository that answers.
-        // Verified: with this entry declared LAST, after mavenCentral(),
-        // `connect:+` still resolves to the newest beta here rather than to
-        // Central's older newest. Order only decides which repository serves a
-        // PINNED version that both carry, where the artifact is identical
-        // anyway — it is kept first so a pin on a beta is served by the tree
-        // that is authoritative for betas.
+        //   useRelease: false (default) — the GitHub-hosted Maven tree, where
+        //     Connect betas publish (they do not reach Maven Central). Central
+        //     is still consulted for versions this tree does not carry.
+        //   useRelease: true — Maven Central only, betas rejected below.
         //
-        // The content filter is not cosmetic. Without it every dependency in
-        // the build (React Native, Kotlin, AndroidX, …) would hit
-        // raw.githubusercontent and 404 before falling through to a repository
-        // that has it. Inclusive `content`, not `exclusiveContent`, so Central
-        // still answers for versions this tree does not carry.
+        // `connect` resolves through a dynamic version, so Gradle queries
+        // every declared repository and takes the newest match across all of
+        // them; position only matters for a pinned version both carry, where
+        // the artifact is identical. The content filter is not cosmetic:
+        // without it every dependency in the build would hit
+        // raw.githubusercontent and 404 before falling through.
         //
         // Declared only here, not also in the top-level `repositories` block:
         // `allprojects` covers this project too, so both would feed the same
         // resolution and the pair could drift.
-        maven {
-            url = "https://raw.githubusercontent.com/go-acoustic/Android_Maven/master"
-            content { includeGroup "io.github.go-acoustic" }
+        if (!acousticUseRelease) {
+            maven {
+                url = "https://raw.githubusercontent.com/go-acoustic/Android_Maven/master"
+                content { includeGroup "io.github.go-acoustic" }
+            }
         }
 
         mavenCentral()
@@ -216,50 +263,22 @@ allprojects {
     }
 }
 
-// Read consumer config at script-evaluation time so the right Connect Android
-// artifact is selected without depending on config.gradle's text-rewriting
-// pass (which only matches the analytics artifact name). Both `PushEnabled`
-// and `AndroidVersion` are read directly here:
-//   - `PushEnabled` picks between the analytics-only and push-fcm artifacts.
-//   - `AndroidVersion` (when set) pins the version against the active artifact.
-import groovy.json.JsonSlurper
-def acousticConfigFile = new File("$rootDir/../ConnectConfig.json")
-def acousticConfig = acousticConfigFile.exists()
-  ? new JsonSlurper().parse(acousticConfigFile)
-  : [Connect: [:]]
-def acousticPushEnabled = (acousticConfig.Connect?.PushEnabled ?: false).toString().toBoolean()
-def acousticVersionPin = (acousticConfig.Connect?.AndroidVersion ?: '').trim()
-def acousticVersion = acousticVersionPin.isEmpty() ? '+' : acousticVersionPin
-def acousticArtifact = acousticPushEnabled ? 'connect-push-fcm' : 'connect'
-
-// Connect co-versions `eocore` + `tealeaf` with itself only from 11.0.18-beta
-// onward — and from that release their POM scope is `runtime`, which drops them
-// off the compile classpath (see the companion declarations below).
-//
-// Earlier releases in the supported range ship `tealeaf` on its own 10.4.x line
-// (with eocore arriving transitively through it) at COMPILE scope, so there the
-// companions are both unnecessary AND unresolvable: eocore/tealeaf 11.0.16-beta
-// simply do not exist on Maven Central. Guard on the explicit pin so a consumer
-// who pinned an older Connect keeps building. An empty pin means `+`, which
-// always resolves to the newest (co-versioned) release.
-def acousticCompanionsRequired = true
-if (!acousticVersionPin.isEmpty()) {
-  // Compare only the numeric core, ignoring any -beta/+build qualifier: a
-  // 11.0.18-beta pin must count as >= the 11.0.18 floor. Encoded as one integer
-  // because Groovy's <=> does not compare two ArrayLists.
-  def core = acousticVersionPin.replaceAll(/[-+].*$/, '').tokenize('.')
-  def nums = (0..2).collect { i -> (i < core.size() && core[i].isInteger()) ? core[i].toInteger() : 0 }
-  // Upper bound as well as lower, so that a pin outside the supported range
-  // fails on the `strictly '[11.0.11, 12.0.0)'` constraint in the
-  // `constraints { }` block at the bottom of `dependencies` — which names both
-  // the range and the reason — rather than on an unresolvable companion
-  // coordinate. Verified: without this bound a 12.0.0 pin reported
-  // "Could not find io.github.go-acoustic:eocore:12.0.0", burying the real cause.
-  def pinCode = nums[0] * 1000000 + nums[1] * 1000 + nums[2]
-  acousticCompanionsRequired = pinCode >= 11_000_018 && pinCode < 12_000_000
+// Same beta rejection config.gradle applies to the app, so with
+// `useRelease: true` this module cannot compile against a beta either — a
+// beta reached through the Sonatype staging repo or an `AndroidVersion` pin
+// fails resolution here instead of diverging from the APK. eocore is exempt:
+// its release line carries a `-beta` suffix (see config.gradle).
+if (acousticUseRelease) {
+  configurations.all {
+    resolutionStrategy.componentSelection.all { selection ->
+      if (selection.candidate.group == 'io.github.go-acoustic' &&
+          selection.candidate.module != 'eocore' &&
+          selection.candidate.version.endsWith('-beta')) {
+        selection.reject("useRelease is true — rejecting beta version ${selection.candidate.version}")
+      }
+    }
+  }
 }
-println "AcousticConnectRN: companionCompileDeps=$acousticCompanionsRequired (pin='$acousticVersionPin')"
-println "AcousticConnectRN: PushEnabled=$acousticPushEnabled, artifact=io.github.go-acoustic:$acousticArtifact:$acousticVersion"
 
 dependencies {
   // Provided by the host app at runtime — compileOnly avoids version conflicts
@@ -280,41 +299,15 @@ dependencies {
   //noinspection GradleDynamicVersion
   implementation "io.github.go-acoustic:$acousticArtifact:$acousticVersion"
 
-  // Restore the compile classpath for Connect's internal modules. This bridge
-  // calls into both directly — `com.ibm.eo.EOCore`,
-  // `com.ibm.eo.model.EOMonitoringLevel`, `com.tl.uic.Tealeaf`,
-  // `com.tl.uic.model.ScreenviewType`,
-  // `com.tl.uic.util.{DialogUtil,LayoutUtil,keyboardview.KeyboardView}` — so
-  // with them at `runtime` scope `compileDebugKotlin` fails with ~34
-  // "Unresolved reference 'ibm' / 'tl' / 'EOCore'" errors.
-  //
-  // compileOnly, not implementation: the artifacts still reach the runtime graph
-  // through Connect's own transitive, so declaring them there too would risk a
-  // second, independently-resolved copy.
-  //
-  // Both scopes are required — compileOnly does NOT propagate to the unit-test
-  // compile classpath, and android/src/test imports com.ibm.eo.* as well, so
-  // compileDebugUnitTestKotlin fails without the testCompileOnly pair.
-  //
-  // Correct for BOTH artifact variants. `connect-push-fcm` does not declare
-  // eocore/tealeaf itself — its POM depends on `connect` at compile scope, and
-  // eocore/tealeaf reach the graph through that at `runtime` scope, so the
-  // compile classpath is short of them exactly as in the analytics-only case.
-  // The variants are co-versioned (connect-push-fcm 11.0.18-beta -> connect
-  // 11.0.18-beta -> eocore/tealeaf 11.0.18-beta), so `$acousticVersion` is the
-  // right coordinate either way. Confirmed on debugCompileClasspath with
-  // PushEnabled=true; gating these on `!acousticPushEnabled` would break the
-  // push variant rather than protect it.
-  if (acousticCompanionsRequired) {
-    //noinspection GradleDynamicVersion
-    compileOnly     "io.github.go-acoustic:eocore:$acousticVersion"
-    //noinspection GradleDynamicVersion
-    compileOnly     "io.github.go-acoustic:tealeaf:$acousticVersion"
-    //noinspection GradleDynamicVersion
-    testCompileOnly "io.github.go-acoustic:eocore:$acousticVersion"
-    //noinspection GradleDynamicVersion
-    testCompileOnly "io.github.go-acoustic:tealeaf:$acousticVersion"
-  }
+  // No direct eocore/tealeaf compile dependency anywhere in this module: the
+  // bridge only calls Connect's own public API (Connect.updateConfig/
+  // getConfigItem*, ConnectMonitoringLevel, ConnectScreenviewType,
+  // Connect.logDialogLayout, Connect.canCaptureUserEvents,
+  // Connect.canTakeScreenShot, Connect.getLayoutInfo, Connect.onDestroy, ...),
+  // and android/src/test asserts on toSignalPayload's own output directly
+  // instead of piping it through EOCore's real JsonUtil (see
+  // HybridAcousticConnectRNTest's "SDK signal payload conversion" region) —
+  // CA-159225.
 
   // Firebase Cloud Messaging — required by the push variant. The
   // `connect-push-fcm` AAR calls `com.google.firebase.messaging.*`
@@ -337,18 +330,33 @@ dependencies {
   // to releases that lack APIs this bridge calls; upper bound prevents a
   // future 12.x major (with potentially breaking changes) from being picked
   // up automatically by Gradle's `+` resolver. Both halves are `strictly` so
-  // an attempted override via `Connect.AndroidVersion` fails loudly at
-  // resolution time rather than surfacing as a runtime `ClassNotFoundException`
-  // or method-missing error. Constraints are declared for both artifact
+  // nothing else in the build can move Connect outside them. A
+  // `Connect.AndroidVersion` outside the range fails at configuration time
+  // (the check after the config read above), not here. Constraints are declared for both artifact
   // names — Gradle only enforces the one that resolves into the graph, so
   // the unused entry is inert.
+  //
+  // An `AndroidVersion` pin is applied to BOTH constraints as `prefer`. With
+  // push enabled the only direct dependency is `connect-push-fcm`, so the pin
+  // used to reach `connect` only through that artifact's POM — and a strict
+  // range is itself a request that resolves to the newest version in range,
+  // so it outranked the transitive pin and floated `connect` past it
+  // (`connect-push-fcm:11.1.5-beta` shipped with `connect:11.1.6-beta`).
+  // `prefer` inside the strict range keeps the range as the hard bound and
+  // makes the pin the version chosen within it.
   constraints {
     implementation('io.github.go-acoustic:connect') {
-      version { strictly '[11.0.11, 12.0.0)' }
-      because 'AcousticConnectRN requires Connect Android SDK in [11.0.11, 12.0.0). Bump the upper bound after validating compatibility with a new major.'
+      version {
+        strictly acousticSupportedRange
+        if (!acousticVersionPin.isEmpty()) { prefer acousticVersionPin }
+      }
+      because "AcousticConnectRN requires Connect Android SDK in ${acousticSupportedRange} (the bridge uses Connect APIs added in 11.1). Bump the upper bound after validating compatibility with a new major."
     }
     implementation('io.github.go-acoustic:connect-push-fcm') {
-      version { strictly '[11.0.11, 12.0.0)' }
+      version {
+        strictly acousticSupportedRange
+        if (!acousticVersionPin.isEmpty()) { prefer acousticVersionPin }
+      }
       because 'connect-push-fcm tracks the same release line as the core connect artifact.'
     }
   }

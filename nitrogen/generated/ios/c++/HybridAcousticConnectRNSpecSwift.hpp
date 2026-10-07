@@ -313,7 +313,7 @@ namespace margelo::nitro::acousticconnectrn {
       auto __value = std::move(__result.value());
       return __value;
     }
-    inline std::shared_ptr<Promise<bool>> pushDidReceiveAuthorization(const std::optional<std::variant<nitro::NullType, bool>>& granted, const std::optional<PushErrorInfo>& error) override {
+    inline std::shared_ptr<Promise<bool>> pushDidReceiveAuthorization(const std::optional<std::variant<bool, nitro::NullType>>& granted, const std::optional<PushErrorInfo>& error) override {
       auto __result = _swiftPart.pushDidReceiveAuthorization(granted, error);
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());
@@ -329,7 +329,7 @@ namespace margelo::nitro::acousticconnectrn {
       auto __value = std::move(__result.value());
       return __value;
     }
-    inline std::shared_ptr<Promise<std::variant<nitro::NullType, bool>>> pushGetPermissionState() override {
+    inline std::shared_ptr<Promise<std::variant<bool, nitro::NullType>>> pushGetPermissionState() override {
       auto __result = _swiftPart.pushGetPermissionState();
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());

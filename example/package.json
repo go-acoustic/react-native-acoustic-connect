@@ -1,9 +1,9 @@
 {
     "dependencies": {
-        "react": "19.1.1",
-        "react-native": "0.82.1",
-        "react-native-acoustic-connect": "19.0.34",
-        "react-native-nitro-modules": "0.35.9"
+        "react": "19.2.3",
+        "react-native": "0.86.3",
+        "react-native-acoustic-connect": "file:..",
+        "react-native-nitro-modules": "0.37.1"
     },
     "devDependencies": {
         "@babel/core": "^7.25.2",
@@ -12,10 +12,10 @@
         "@react-native-community/cli": "15.0.1",
         "@react-native-community/cli-platform-android": "15.0.1",
         "@react-native-community/cli-platform-ios": "15.0.1",
-        "@react-native/babel-preset": "0.82.1",
-        "@react-native/eslint-config": "0.82.1",
-        "@react-native/metro-config": "0.82.1",
-        "@react-native/typescript-config": "0.82.1",
+        "@react-native/babel-preset": "0.86.3",
+        "@react-native/eslint-config": "0.86.3",
+        "@react-native/metro-config": "0.86.3",
+        "@react-native/typescript-config": "0.86.3",
         "@types/jest": "^29.5.13",
         "babel-plugin-module-resolver": "^5.0.2"
     },
@@ -26,7 +26,7 @@
     "private": true,
     "scripts": {
         "android": "react-native run-android",
-        "androidUpdate": "cd android &&  ./gradlew --refresh-dependencies && ./gradlew :react-native-nitro-modules:compileDebugSources :react-native-nitro-modules:compileDebugUnitTestSources :react-native-nitro-modules:compileDebugAndroidTestSources :app:compileDebugSources :app:compileDebugUnitTestSources :app:compileDebugAndroidTestSources :react-native-acoustic-connect:compileDebugSources :react-native-acoustic-connect:compileDebugUnitTestSources :react-native-acoustic-connect:compileDebugAndroidTestSources :gradle-plugin:react-native-gradle-plugin:compileJava :gradle-plugin:react-native-gradle-plugin:testClasses :gradle-plugin:settings-plugin:compileJava :gradle-plugin:settings-plugin:testClasses :gradle-plugin:shared:compileJava :gradle-plugin:shared:testClasses :gradle-plugin:shared-testutil:compileJava :gradle-plugin:shared-testutil:testClasses",
+        "androidUpdate": "cd android && ./gradlew --refresh-dependencies :react-native-nitro-modules:compileDebugSources :react-native-nitro-modules:compileDebugUnitTestSources :react-native-nitro-modules:compileDebugAndroidTestSources :app:compileDebugSources :app:compileDebugUnitTestSources :app:compileDebugAndroidTestSources :react-native-acoustic-connect:compileDebugSources :react-native-acoustic-connect:compileDebugUnitTestSources :react-native-acoustic-connect:compileDebugAndroidTestSources :gradle-plugin:react-native-gradle-plugin:compileJava :gradle-plugin:react-native-gradle-plugin:testClasses :gradle-plugin:settings-plugin:compileJava :gradle-plugin:settings-plugin:testClasses :gradle-plugin:shared:compileJava :gradle-plugin:shared:testClasses :gradle-plugin:shared-testutil:compileJava :gradle-plugin:shared-testutil:testClasses",
         "exampleUpdate": "npm install && npm run iOSUpdate && npm run androidUpdate",
         "iOSUpdate": "bundle install && bundle exec pod update --project-directory=ios",
         "ios": "react-native run-ios",

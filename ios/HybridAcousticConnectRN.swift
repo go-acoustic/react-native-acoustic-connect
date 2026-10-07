@@ -423,7 +423,7 @@ class HybridAcousticConnectRN: HybridAcousticConnectRNSpec {
     /// Forwards externally-obtained permission state to the SDK. Tri-state
     /// `granted`: `true`/`false` forward; `nil` (notDetermined) is recorded by
     /// the OS, not forwarded — the SDK has no notion of an "unknown" state.
-    func pushDidReceiveAuthorization(granted: Variant_NullType_Bool?, error: PushErrorInfo?) throws -> Promise<Bool> {
+    func pushDidReceiveAuthorization(granted: Variant_Bool_NullType?, error: PushErrorInfo?) throws -> Promise<Bool> {
         // `nil` (notDetermined) is intentionally not forwarded — the SDK has no
         // notion of an "unknown" authorization. This resolves `true` ("handled —
         // accepted, not forwarded"), not a failure.
@@ -464,16 +464,16 @@ class HybridAcousticConnectRN: HybridAcousticConnectRNSpec {
     /// Reads the current notification permission state without prompting, mapped
     /// to a tri-state: `true` granted, `false` denied, `null` not determined.
     /// Never rejects — push-not-enabled resolves as `null`.
-    func pushGetPermissionState() throws -> Promise<Variant_NullType_Bool> {
+    func pushGetPermissionState() throws -> Promise<Variant_Bool_NullType> {
         return Promise.async { @MainActor in
             do {
                 if let granted = try await ConnectSDK.shared.push.getCurrentAuthorization() {
-                    return .second(granted)
+                    return .first(granted)
                 }
-                return .first(.null)
+                return .second(.null)
             } catch {
                 bridgeLog.error("pushGetPermissionState failed: \(error.localizedDescription, privacy: .public)")
-                return .first(.null)
+                return .second(.null)
             }
         }
     }
@@ -790,6 +790,11 @@ class HybridAcousticConnectRN: HybridAcousticConnectRNSpec {
     ///   The framework only unwraps navigation controllers; capturing a tab
     ///   controller is not wrong (its view contains the selected child), but
     ///   the selected child is the screen the capture is named after.
+    /// - It descends into react-native-screens' controllers to the screen on
+    ///   top (`ConnectRNScreenResolution`). The framework records that
+    ///   `RNSScreen` as the current screen, and only a capture of the same
+    ///   controller adds a layout to its screen view instead of posting a
+    ///   second, self-referencing LOAD.
     ///
     /// Must be called on the main thread — see `captureScreenLayout`.
     private static func resolveTopViewController() -> UIViewController? {
@@ -810,34 +815,7 @@ class HybridAcousticConnectRN: HybridAcousticConnectRNSpec {
             return nil
         }
 
-        var top = window.rootViewController
-        // Bounded rather than an open `while`. In practice the chain is a short
-        // linked list, but this runs on every navigation, so a pathological
-        // cycle must not hang the main thread.
-        var hops = 0
-        while hops < 32 {
-            hops += 1
-            // Presentation first: `presentedViewController` also reports a
-            // modal put up by a descendant, so checking it before unwrapping a
-            // container lands on the modal directly instead of on the
-            // container's child underneath it.
-            if let presented = top?.presentedViewController {
-                top = presented
-                continue
-            }
-            if let nav = top as? UINavigationController,
-               let visible = nav.topViewController {
-                top = visible
-                continue
-            }
-            if let tabs = top as? UITabBarController,
-               let selected = tabs.selectedViewController {
-                top = selected
-                continue
-            }
-            break
-        }
-        return top
+        return ConnectRNScreenResolution.topViewController(from: window.rootViewController)
     }
 
     /// Resolves the top view controller and hands it to the framework, as one

@@ -49,6 +49,7 @@ const sharedDir = fs.existsSync(siblingShared)
 // regardless so an absent dir surfaces as a clear module-resolution error
 // rather than an opaque watcher crash.
 const sharedExists = fs.existsSync(sharedDir)
+const sampleNavigation = path.resolve(__dirname, 'src', 'navigation', 'sampleNavigation')
 
 const config = {
   watchFolders: [
@@ -71,6 +72,12 @@ const config = {
           subpath ? path.join(sharedDir, subpath) : sharedDir,
           platform
         )
+      }
+      // `@sample/navigation` is the router hooks the shared screens use, bound to
+      // this app's router — react-navigation here, expo-router in the Expo
+      // sample. See src/navigation/sampleNavigation.ts.
+      if (moduleName === '@sample/navigation') {
+        return context.resolveRequest(context, sampleNavigation, platform)
       }
       return context.resolveRequest(context, moduleName, platform)
     },

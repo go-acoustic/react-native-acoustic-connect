@@ -48,29 +48,24 @@ import com.acoustic.connect.android.connectmod.Connect.logScreenview
 import com.acoustic.connect.android.connectmod.Connect.onResume
 import com.acoustic.connect.android.connectmod.Connect.registerFormField
 import com.acoustic.connect.android.connectmod.Connect.resumeConnect
+import com.acoustic.connect.android.connectmod.model.ConnectMonitoringLevel
+import com.acoustic.connect.android.connectmod.model.ConnectScreenviewType
 import com.acoustic.connect.android.connectmod.push.PushPermissionState
 import com.acoustic.connect.android.connectmod.push.core.MobileServiceType
 import com.facebook.react.bridge.LifecycleEventListener
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.uimanager.UIManagerHelper
-import com.ibm.eo.EOCore
-import com.ibm.eo.model.EOMonitoringLevel
 import com.margelo.nitro.NitroModules.Companion.applicationContext
 import com.margelo.nitro.acousticconnectrn.HybridAcousticConnectRNSpec
 import com.margelo.nitro.acousticconnectrn.PushErrorInfo
 import com.margelo.nitro.acousticconnectrn.PushPermissionResult
 import com.margelo.nitro.acousticconnectrn.Variant_Boolean_String_Double
-import com.margelo.nitro.acousticconnectrn.Variant_NullType_Boolean
+import com.margelo.nitro.acousticconnectrn.Variant_Boolean_NullType
 import com.margelo.nitro.acousticconnectrn.Variant_NullType_String
 import com.margelo.nitro.core.AnyMap
 import com.margelo.nitro.core.ArrayBuffer
 import com.margelo.nitro.core.NullType
 import com.margelo.nitro.core.Promise
-import com.tl.uic.Tealeaf
-import com.tl.uic.model.ScreenviewType
-import com.tl.uic.util.DialogUtil
-import com.tl.uic.util.LayoutUtil
-import com.tl.uic.util.keyboardview.KeyboardView
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -371,7 +366,7 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
      * authorization result needs no forwarding. Kept for API symmetry with iOS
      * (where it forwards to the native SDK). Never rejects.
      */
-    override fun pushDidReceiveAuthorization(granted: Variant_NullType_Boolean?, error: PushErrorInfo?): Promise<Boolean> {
+    override fun pushDidReceiveAuthorization(granted: Variant_Boolean_NullType?, error: PushErrorInfo?): Promise<Boolean> {
         Log.d(TAG, "[bridge] pushDidReceiveAuthorization: no-op on Android (state self-heals via lifecycle)")
         return Promise.resolved(true)
     }
@@ -460,12 +455,12 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
      * `connect` artifact (always on the classpath) and never touches the FCM
      * transport classes, so there is no missing-artifact / stub-object risk.
      */
-    override fun pushGetPermissionState(): Promise<Variant_NullType_Boolean> {
-        val promise = Promise<Variant_NullType_Boolean>()
+    override fun pushGetPermissionState(): Promise<Variant_Boolean_NullType> {
+        val promise = Promise<Variant_Boolean_NullType>()
         runOnMain {
             val context = applicationContext?.applicationContext
             if (context == null) {
-                promise.resolve(Variant_NullType_Boolean.create(NullType.NULL))
+                promise.resolve(Variant_Boolean_NullType.create(NullType.NULL))
                 return@runOnMain
             }
             try {
@@ -474,9 +469,9 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
                 // `else` branch below), so silence the redundancy warning.
                 @Suppress("REDUNDANT_ELSE_IN_WHEN")
                 val triState = when (Connect.push.getPushPermissionState(context)) {
-                    PushPermissionState.GRANTED -> Variant_NullType_Boolean.create(true)
-                    PushPermissionState.DENIED -> Variant_NullType_Boolean.create(false)
-                    PushPermissionState.NOT_DETERMINED -> Variant_NullType_Boolean.create(NullType.NULL)
+                    PushPermissionState.GRANTED -> Variant_Boolean_NullType.create(true)
+                    PushPermissionState.DENIED -> Variant_Boolean_NullType.create(false)
+                    PushPermissionState.NOT_DETERMINED -> Variant_Boolean_NullType.create(NullType.NULL)
                     // PushPermissionState is a Connect-SDK enum that may gain
                     // values in a future release. An explicit `else` keeps this
                     // forward-compatible: it avoids a compile break if the bridge
@@ -485,12 +480,12 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
                     // bridge built against the old enum, run against a newer one)
                     // with a deliberate fallback. Any unknown/new state maps to the
                     // tri-state `null` ("not determined") — the safest default.
-                    else -> Variant_NullType_Boolean.create(NullType.NULL)
+                    else -> Variant_Boolean_NullType.create(NullType.NULL)
                 }
                 promise.resolve(triState)
             } catch (e: Exception) {
                 Log.w(TAG, "[bridge] pushGetPermissionState: query failed — ${e.message}")
-                promise.resolve(Variant_NullType_Boolean.create(NullType.NULL))
+                promise.resolve(Variant_Boolean_NullType.create(NullType.NULL))
             }
         }
         return promise
@@ -545,7 +540,7 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
         moduleName: String
     ): Boolean {
         val result: Boolean =
-            EOCore.updateConfig(key, value.toString(), EOCore.getLifecycleObject(moduleName))
+            Connect.updateConfig(key, value.toString(), moduleName)
         return result
     }
 
@@ -562,7 +557,7 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
         value: String,
         moduleName: String
     ): Boolean {
-        val result = EOCore.updateConfig(key, value, EOCore.getLifecycleObject(moduleName))
+        val result = Connect.updateConfig(key, value, moduleName)
         return result
     }
 
@@ -584,7 +579,7 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
         // token as the "0" the JSON config files carry, so a consumer setting
         // a whole-number item at runtime wrote a value that no longer matched
         // what the same key looks like on iOS (a native number) or on disk.
-        val result = EOCore.updateConfig(key, formatJsNumber(value), EOCore.getLifecycleObject(moduleName))
+        val result = Connect.updateConfig(key, formatJsNumber(value), moduleName)
         return result
     }
 
@@ -602,7 +597,7 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
         moduleName: String
     ): Boolean {
         val result =
-            EOCore.updateConfig(key, variantToString(value), EOCore.getLifecycleObject(moduleName))
+            Connect.updateConfig(key, variantToString(value), moduleName)
         return result
     }
 
@@ -619,7 +614,7 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
         key: String,
         moduleName: String
     ): Boolean {
-        val result = EOCore.getConfigItemBoolean(key, EOCore.getLifecycleObject(moduleName))
+        val result = Connect.getConfigItemBoolean(key, moduleName)
         if (result == false) {
             return theDefault
         }
@@ -635,7 +630,7 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
      * @return String value if the operation was successful, null otherwise.
      */
     override fun getStringItemForKey(theDefault: String, key: String, moduleName: String): Variant_NullType_String? {
-        var result = EOCore.getConfigItemString(key, EOCore.getLifecycleObject(moduleName))
+        var result = Connect.getConfigItemString(key, moduleName)
         if (TextUtils.isEmpty(result)) {
             result = theDefault
         }
@@ -651,7 +646,7 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
      * @return Double value if the operation was successful, 0.0 otherwise.
      */
     override fun getNumberItemForKey(theDefault: Double, key: String, moduleName: String): Double {
-        var result = EOCore.getConfigItemDouble(key, EOCore.getLifecycleObject(moduleName))
+        var result = Connect.getConfigItemDouble(key, moduleName)
         if (result == -1.0) {
             result = theDefault
         }
@@ -800,7 +795,7 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
      * @return True if the operation was successful, false otherwise.
      */
     override fun logLocation(): Boolean {
-        val result = logGeolocation(EOMonitoringLevel.kEOMonitoringLevelInfo.value)
+        val result = logGeolocation(ConnectMonitoringLevel.INFO.value)
         return result
     }
 
@@ -824,32 +819,23 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
     /**
      * Log click events on react native control.
      *
+     * The view lookup and the SDK call both run on the main looper — see
+     * [withResolvedView].
+     *
      * @param target    Target id of the control.
      * @param controlId Accessibility ID(virtual id).
-     * @return True if the operation was successful, false otherwise.
+     * @return True if the event was handed to the main looper, false without a
+     *   React context. It cannot report whether the view resolved.
      */
     override fun logClickEvent(target: Double, controlId: String): Boolean {
-        val viewTag = target.toInt()
-        return try {
-            val ctx = applicationContext ?: return false
-            val uiManager = UIManagerHelper.getUIManagerForReactTag(ctx, viewTag)
-                ?: return false
-            val view = uiManager.resolveView(viewTag) ?: return false
-
-            Handler(Looper.getMainLooper()).post {
-                val activity = getCurrentActivity() ?: return@post
-                if (view is EditText) {
-                    addFocusAndRegister(view, null, activity)
-                } else if (TextUtils.isEmpty(controlId)) {
-                    logEvent(view, "click")
-                } else {
-                    logEvent(view, "click", controlId)
-                }
+        return withResolvedView(target.toInt(), "logClickEvent") { view, activity ->
+            if (view is EditText) {
+                addFocusAndRegister(view, null, activity)
+            } else if (TextUtils.isEmpty(controlId)) {
+                logEvent(view, "click")
+            } else {
+                logEvent(view, "click", controlId)
             }
-            true
-        } catch (e: Exception) {
-            Log.v(TAG, "logClickEvent error: ${e.message}", e)
-            false
         }
     }
 
@@ -857,28 +843,16 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
      * Log click events on react native control.
      *
      * @param target    Target id of the control.
-     * @return True if the operation was successful, false otherwise.
+     * @return True if the event was handed to the main looper, false without a
+     *   React context. It cannot report whether the view resolved.
      */
     fun logClickEvent(target: Double): Boolean {
-        val viewTag = target.toInt()
-        return try {
-            val ctx = applicationContext ?: return false
-            val uiManager = UIManagerHelper.getUIManagerForReactTag(ctx, viewTag)
-                ?: return false
-            val view = uiManager.resolveView(viewTag) ?: return false
-
-            Handler(Looper.getMainLooper()).post {
-                val activity = getCurrentActivity() ?: return@post
-                if (view is EditText) {
-                    addFocusAndRegister(view, null, activity)
-                } else {
-                    logEvent(view, "click")
-                }
+        return withResolvedView(target.toInt(), "logClickEvent") { view, activity ->
+            if (view is EditText) {
+                addFocusAndRegister(view, null, activity)
+            } else {
+                logEvent(view, "click")
             }
-            true
-        } catch (e: Exception) {
-            Log.v(TAG, "logClickEvent error: ${e.message}")
-            false
         }
     }
 
@@ -888,28 +862,57 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
      * @param target    A valid native View Id for lookup.
      * @param controlId Accessibility ID(virtual id).
      * @param text      The input string.
-     * @return True if the operation was successful, false otherwise.
+     * @return True if the event was handed to the main looper, false without a
+     *   React context. It cannot report whether the view resolved.
      */
     override fun logTextChangeEvent(target: Double, controlId: String, text: Variant_NullType_String?): Boolean {
-        val viewTag = target.toInt()
-        return try {
-            val ctx = applicationContext ?: return false
-            val uiManager = UIManagerHelper.getUIManagerForReactTag(ctx, viewTag)
-                ?: return false
-            val view = uiManager.resolveView(viewTag) ?: return false
-
-            Handler(Looper.getMainLooper()).post {
-                val activity = getCurrentActivity() ?: return@post
-                if (view is EditText && view.onFocusChangeListener == null) {
-                    logEvent(view, TLF_ON_FOCUS_CHANGE_IN, controlId)
-                    addFocusAndRegister(view, controlId, activity)
-                }
+        return withResolvedView(target.toInt(), "logTextChangeEvent") { view, activity ->
+            if (view is EditText && view.onFocusChangeListener == null) {
+                logEvent(view, TLF_ON_FOCUS_CHANGE_IN, controlId)
+                addFocusAndRegister(view, controlId, activity)
             }
-            true
-        } catch (e: Exception) {
-            Log.v(TAG, "logTextChangeEvent error: ${e.message}")
-            false
         }
+    }
+
+    /**
+     * Resolves the native view behind a React tag and hands it to [block], with
+     * the lookup and the block both running on the main looper.
+     *
+     * Nitro calls arrive on the JS thread, and Fabric's `resolveView` must run
+     * on the UI thread. The bridge used to resolve first and post second, so
+     * every tap logged `AssertionException: Expected to run on UI thread!` in
+     * debug builds. That assertion is soft — the view still came back — but
+     * the lookup was reading the mounting layer's view map while the UI thread
+     * mutates it.
+     *
+     * The whole block is guarded, not just the lookup. `getView` throws when
+     * the view was unmounted between the tap and this post running, and an
+     * exception escaping a posted block is uncaught on the main thread — a
+     * crash, where the old off-thread lookup only returned false.
+     *
+     * @param viewTag React tag of the touched view.
+     * @param api     Name of the bridge method, for the log line.
+     * @param block   Work to do with the resolved view and current activity;
+     *   skipped when either is unavailable.
+     * @return False without a React context, true once the work is posted.
+     */
+    private fun withResolvedView(
+        viewTag: Int,
+        api: String,
+        block: (View, Activity) -> Unit
+    ): Boolean {
+        val ctx = applicationContext ?: return false
+        runOnMain {
+            try {
+                val view = UIManagerHelper.getUIManagerForReactTag(ctx, viewTag)
+                    ?.resolveView(viewTag) ?: return@runOnMain
+                val activity = getCurrentActivity() ?: return@runOnMain
+                block(view, activity)
+            } catch (e: Exception) {
+                Log.v(TAG, "$api error: ${e.message}", e)
+            }
+        }
+        return true
     }
 
     /**
@@ -1001,7 +1004,7 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
         // into a crash; the sample now calls this method directly, so the path is
         // easy to reach from JS.
         val activity = getCurrentActivity() ?: return false
-        return logScreenview(activity, logicalPageName?.asSecondOrNull().toString(), ScreenviewType.LOAD, referrer?.asSecondOrNull())
+        return logScreenview(activity, logicalPageName?.asSecondOrNull().toString(), ConnectScreenviewType.LOAD, referrer?.asSecondOrNull())
     }
 
     /**
@@ -1019,7 +1022,7 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
         // into a crash; the sample now calls this method directly, so the path is
         // easy to reach from JS.
         val activity = getCurrentActivity() ?: return false
-        return logScreenview(activity, logicalPageName?.asSecondOrNull().toString(), ScreenviewType.UNLOAD, referrer?.asSecondOrNull())
+        return logScreenview(activity, logicalPageName?.asSecondOrNull().toString(), ConnectScreenviewType.UNLOAD, referrer?.asSecondOrNull())
     }
 
     /**
@@ -1048,7 +1051,7 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
         resumeConnect(getCurrentActivity(), name, false)
         // The 3-arg overload takes a nullable Activity, so this one is safe to pass
         // through — unlike the 4-arg overload the context methods use.
-        logScreenview(getCurrentActivity(), name, ScreenviewType.LOAD)
+        logScreenview(getCurrentActivity(), name, ConnectScreenviewType.LOAD)
         var result = false
         // The layout capture below needs a real activity: it used to go through
         // Objects.requireNonNull, which threw when the activity had gone away
@@ -1056,7 +1059,7 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
         // false — this runs on every Android navigation, so a throw here is a
         // crash on an ordinary screen change.
         val activity = getCurrentActivity()
-        if (activity != null && LayoutUtil.canCaptureUserEvents(null, name)) {
+        if (activity != null && Connect.canCaptureUserEvents(null, name)) {
             result = logAutomaticScreenLayout(
                 activity,
                 name,
@@ -1083,7 +1086,7 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
      *   honoured from config and a full-page image shipped in every layout
      *   message regardless. Hence the five-argument overload, with
      *   `manualLog = false`.
-     * - [LayoutUtil.canTakeScreenShot] resolves the same merged layout rule the
+     * - [Connect.canTakeScreenShot] resolves the same merged layout rule the
      *   native automatic path uses (global settings as a baseline, any
      *   per-screen rule applied over them). It is preferred over reading
      *   `ScreenShot` directly because it is `has()`-guarded: a per-screen rule
@@ -1108,7 +1111,7 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
             name,
             delayMs,
             false,
-            LayoutUtil.canTakeScreenShot(null, name)
+            Connect.canTakeScreenShot(name)
         )
     }
 
@@ -1122,7 +1125,7 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
      * fired at the start of the screen transition and the configured value
      * was inert.
      *
-     * [LayoutUtil.getLayoutInfo] returns the merged rule for the screen: the
+     * [Connect.getLayoutInfo] returns the merged rule for the screen: the
      * global settings as a baseline with any per-screen rule applied over
      * them, so this picks up either without re-implementing the precedence.
      * It reads the config off disk, so a malformed or absent block falls back
@@ -1134,7 +1137,7 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
             return delay.toInt()
         }
         return try {
-            LayoutUtil.getLayoutInfo(name)
+            Connect.getLayoutInfo(name)
                 ?.optInt(CAPTURE_LAYOUT_DELAY_KEY, DEFAULT_CAPTURE_LAYOUT_DELAY_MS)
                 ?.coerceAtLeast(0)
                 ?: DEFAULT_CAPTURE_LAYOUT_DELAY_MS
@@ -1173,7 +1176,7 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
                         if (dialog != null) {
                             val activity = getCurrentActivity()
                             if (activity != null) {
-                                DialogUtil.logDialog(getCurrentActivity(), dialog)
+                                Connect.logDialogLayout(activity, dialog)
 //                                Tealeaf.logScreenLayoutSetOnShowListener(activity, dialog, dialogId, true)
                                 Log.v(TAG, "Delayed screenshot capture successful for dialog: $dialogId")
                             }
@@ -1197,7 +1200,7 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
                 if (dialog != null) {
                     val activity = getCurrentActivity()
                     if (activity != null) {
-                        DialogUtil.logDialog(getCurrentActivity(), dialog)
+                        Connect.logDialogLayout(activity, dialog)
                         return true
                     } else {
                         result = false
@@ -1337,7 +1340,7 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
             values["timestamp"] = System.currentTimeMillis().toString()
 
             result =
-                Connect.logCustomEvent("DialogDismissEvent", values, EOMonitoringLevel.kEOMonitoringLevelInfo.value)
+                Connect.logCustomEvent("DialogDismissEvent", values, ConnectMonitoringLevel.INFO.value)
         } catch (e: Exception) {
             Log.v(TAG, "Error logging dialog dismiss event: ${e.message}")
             result = false
@@ -1364,7 +1367,7 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
             values["eventType"] = "dialog_button_click"
             values["timestamp"] = System.currentTimeMillis().toString()
 
-            result = Connect.logCustomEvent("DialogButtonClickEvent", values, EOMonitoringLevel.kEOMonitoringLevelInfo.value)
+            result = Connect.logCustomEvent("DialogButtonClickEvent", values, ConnectMonitoringLevel.INFO.value)
 
             // TODO:  JS pass button id
             // Simple approach: find the most recently shown dialog
@@ -1422,7 +1425,7 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
             }
 
             result =
-                Connect.logCustomEvent("DialogCustomEvent", eventValues, EOMonitoringLevel.kEOMonitoringLevelInfo.value)
+                Connect.logCustomEvent("DialogCustomEvent", eventValues, ConnectMonitoringLevel.INFO.value)
         } catch (e: Exception) {
             Log.v(TAG, "Error logging dialog custom event: ${e.message}")
             result = false
@@ -1544,10 +1547,9 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
      * error, and nothing here could rescue it. Numbers nested inside an object
      * or array were never affected — the enclosing [JSONObject]/[JSONArray] is
      * built here, so `org.json` serializes them normally — and iOS has always
-     * carried top-level numbers. Both sides of the boundary sit inside the
-     * `[11.0.11, 12.0.0)` range this bridge accepts, so an integration pinning
-     * an older Connect version still sees the old behaviour; nesting a number
-     * is portable across the whole range.
+     * carried top-level numbers. Both sides of the boundary sit below the
+     * `[11.1.16-beta, 12.0.0)` range this bridge accepts, so every supported
+     * version carries a top-level number; nesting a number stays portable.
      *
      * A [JSONException] aborts the whole payload rather than escaping to the
      * caller. Non-finite numbers are the case that raises it: `org.json`
@@ -1645,13 +1647,19 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
             if (hasFocus) {
                 val imm = v.context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
                 imm.showSoftInput(v, InputMethodManager.SHOW_FORCED)
-                val keyboardView = KeyboardView(v.context.applicationContext, null)
+                // The soft keyboard has no real View in the hierarchy to report, and
+                // Tealeaf's own com.tl.uic.util.keyboardview.KeyboardView is an internal
+                // type this bridge can no longer import. A plain View is a placeholder
+                // standing in for "the keyboard" as the logEvent target — the same
+                // substitution Tealeaf's own native TLHelper.CustomOnFocusListener makes
+                // for this identical notification.
+                val keyboardEventTarget = View(v.context.applicationContext)
 
                 if (TextUtils.isEmpty(accessibilityID)) {
-                    logEvent(keyboardView, TLF_UI_KEYBOARD_DID_SHOW_NOTIFICATION)
+                    logEvent(keyboardEventTarget, TLF_UI_KEYBOARD_DID_SHOW_NOTIFICATION)
                     logEvent(v, TLF_ON_FOCUS_CHANGE_IN)
                 } else {
-                    logEvent(keyboardView, TLF_UI_KEYBOARD_DID_SHOW_NOTIFICATION, accessibilityID!!)
+                    logEvent(keyboardEventTarget, TLF_UI_KEYBOARD_DID_SHOW_NOTIFICATION, accessibilityID!!)
                     logEvent(v, TLF_ON_FOCUS_CHANGE_IN, accessibilityID!!)
                 }
             } else {
@@ -1659,12 +1667,13 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
                 val imm = v.context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
                 imm.hideSoftInputFromWindow(v.windowToken, 0)
 
-                val keyboardView = KeyboardView(v.context.applicationContext, null)
+                // Same placeholder-View substitution as the show-notification branch above.
+                val keyboardEventTarget = View(v.context.applicationContext)
 
                 if (TextUtils.isEmpty(accessibilityID)) {
-                    logEvent(keyboardView, TLF_UI_KEYBOARD_DID_HIDE_NOTIFICATION)
+                    logEvent(keyboardEventTarget, TLF_UI_KEYBOARD_DID_HIDE_NOTIFICATION)
                 } else {
-                    logEvent(keyboardView, TLF_UI_KEYBOARD_DID_HIDE_NOTIFICATION, accessibilityID!!)
+                    logEvent(keyboardEventTarget, TLF_UI_KEYBOARD_DID_HIDE_NOTIFICATION, accessibilityID!!)
                 }
             }
         }
@@ -1762,9 +1771,7 @@ class HybridAcousticConnectRN : HybridAcousticConnectRNSpec(),
             return
         }
 
-        Tealeaf.onDestroy(activity, null)
-        // Uncomment if Connect.onDestroy is needed
-        // Connect.onDestroy(activity, null)
+        Connect.onDestroy(activity, null)
     }
 
     companion object {

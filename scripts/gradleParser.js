@@ -26,6 +26,11 @@ const gradleCode = `apply from: new File(["node", "--print", "require.resolve('r
 // Matches the legacy `apply from: project(':react-native-acoustic-connect')...`
 // line so an existing integration is upgraded in place on the next install.
 const legacyGradleCodeRe = /^.*apply from:\s*project\(':react-native-acoustic-connect'\).*config\.gradle".*$/m
+// Matches any other live (uncommented) `apply from:` of this SDK's config.gradle —
+// e.g. the bare-workflow sample's `resolveNodeModule(...)` form. Checked so an
+// app that already wires config.gradle its own way doesn't get a second apply
+// appended on every install.
+const otherGradleCodeRe = /^(?!\s*\/\/).*apply from:.*react-native-acoustic-connect.*config\.gradle.*$/m
 const filePath = `${directoryPath}/android/app/build.gradle`
 
 if(!isValid(filePath)){
@@ -48,6 +53,8 @@ try {
         gradleData = gradleData.replace(legacyGradleCodeRe, gradleCode)
         fs.writeFileSync(filePath, gradleData);
         console.log("Upgraded legacy config.gradle apply-from line in:", filePath)
+    } else if (otherGradleCodeRe.test(gradleData)) {
+        console.log("config.gradle is already applied another way, skipping:", filePath)
     } else {
         gradleData = `${gradleData}\n${gradleCode}\n`
         fs.writeFileSync(filePath, gradleData);

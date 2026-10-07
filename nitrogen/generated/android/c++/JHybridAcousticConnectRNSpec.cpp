@@ -22,7 +22,7 @@ namespace margelo::nitro::acousticconnectrn { struct PushErrorInfo; }
 #include <NitroModules/JPromise.hpp>
 #include "PushPermissionResult.hpp"
 #include "JPushPermissionResult.hpp"
-#include "JVariant_NullType_Boolean.hpp"
+#include "JVariant_Boolean_NullType.hpp"
 #include "JVariant_Boolean_String_Double.hpp"
 #include <unordered_map>
 #include <NitroModules/AnyMap.hpp>
@@ -295,9 +295,9 @@ namespace margelo::nitro::acousticconnectrn {
       return __promise;
     }();
   }
-  std::shared_ptr<Promise<bool>> JHybridAcousticConnectRNSpec::pushDidReceiveAuthorization(const std::optional<std::variant<nitro::NullType, bool>>& granted, const std::optional<PushErrorInfo>& error) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<JVariant_NullType_Boolean> /* granted */, jni::alias_ref<JPushErrorInfo> /* error */)>("pushDidReceiveAuthorization");
-    auto __result = method(_javaPart, granted.has_value() ? JVariant_NullType_Boolean::fromCpp(granted.value()) : nullptr, error.has_value() ? JPushErrorInfo::fromCpp(error.value()) : nullptr);
+  std::shared_ptr<Promise<bool>> JHybridAcousticConnectRNSpec::pushDidReceiveAuthorization(const std::optional<std::variant<bool, nitro::NullType>>& granted, const std::optional<PushErrorInfo>& error) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<JVariant_Boolean_NullType> /* granted */, jni::alias_ref<JPushErrorInfo> /* error */)>("pushDidReceiveAuthorization");
+    auto __result = method(_javaPart, granted.has_value() ? JVariant_Boolean_NullType::fromCpp(granted.value()) : nullptr, error.has_value() ? JPushErrorInfo::fromCpp(error.value()) : nullptr);
     return [&]() {
       auto __promise = Promise<bool>::create();
       __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& __boxedResult) {
@@ -327,13 +327,13 @@ namespace margelo::nitro::acousticconnectrn {
       return __promise;
     }();
   }
-  std::shared_ptr<Promise<std::variant<nitro::NullType, bool>>> JHybridAcousticConnectRNSpec::pushGetPermissionState() {
+  std::shared_ptr<Promise<std::variant<bool, nitro::NullType>>> JHybridAcousticConnectRNSpec::pushGetPermissionState() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>()>("pushGetPermissionState");
     auto __result = method(_javaPart);
     return [&]() {
-      auto __promise = Promise<std::variant<nitro::NullType, bool>>::create();
+      auto __promise = Promise<std::variant<bool, nitro::NullType>>::create();
       __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& __boxedResult) {
-        auto __result = jni::static_ref_cast<JVariant_NullType_Boolean>(__boxedResult);
+        auto __result = jni::static_ref_cast<JVariant_Boolean_NullType>(__boxedResult);
         __promise->resolve(__result->toCpp());
       });
       __result->cthis()->addOnRejectedListener([=](const jni::alias_ref<jni::JThrowable>& __throwable) {

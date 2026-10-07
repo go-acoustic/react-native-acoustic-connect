@@ -52,7 +52,15 @@ iOSVersion = connectConfig["Connect"]["iOSVersion"]
 # `ConnectDelegateProxy`-swizzled `UNUserNotificationCenter` delegate path
 # the bridge relies on in `pushMode: 'automatic'`). 2.1.12 and older mis-wire
 # that path, so the floor is raised to guarantee the fix is present.
-sdkFloor = '>= 2.1.13'
+# 2.1.51 floor: the first AcousticConnectDebug build with every iOS fix this
+# release relies on. The bridge now captures the react-native-screens screen on
+# display, and the SDK stops sending a duplicate, self-referencing screen view
+# (from 2.1.44); an on-screen Alert.alert no longer re-posts the current screen
+# while screenshots are on (from 2.1.49); and React Native's dev loading banner
+# is no longer logged as a screen (2.1.51). Earlier builds still resolve and
+# compile, but keep those defects. Open-ended on purpose: 2.2.x and newer
+# satisfy it too.
+sdkFloor = '>= 2.1.51'
 dependencyRequirements = iOSVersion.to_s.empty? ? [sdkFloor] : [sdkFloor, iOSVersion]
 
 # Normalize Connect.PushEnabled to a STRICT boolean before writing the native
@@ -148,6 +156,7 @@ Pod::Spec.new do |s|
     ts.source_files = [
       'ios/Tests/**/*.swift',
       'ios/ConnectRNParsing.swift',
+      'ios/ConnectRNScreenResolution.swift',
       'nitrogen/generated/ios/swift/Variant_Bool_String_Double.swift',
     ]
     # ios/ConnectRNParsing.swift does `import Connect`. CocoaPods test_specs

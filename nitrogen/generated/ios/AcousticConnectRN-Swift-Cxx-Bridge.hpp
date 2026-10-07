@@ -271,47 +271,47 @@ namespace margelo::nitro::acousticconnectrn::bridge::swift {
     return optional.value();
   }
   
-  // pragma MARK: std::variant<nitro::NullType, bool>
+  // pragma MARK: std::variant<bool, nitro::NullType>
   /**
-   * Wrapper struct for `std::variant<nitro::NullType, bool>`.
+   * Wrapper struct for `std::variant<bool, nitro::NullType>`.
    * std::variant cannot be used in Swift because of a Swift bug.
    * Not even specializing it works. So we create a wrapper struct.
    */
-  struct std__variant_nitro__NullType__bool_ final {
-    std::variant<nitro::NullType, bool> variant;
-    std__variant_nitro__NullType__bool_(std::variant<nitro::NullType, bool> variant): variant(variant) { }
-    operator std::variant<nitro::NullType, bool>() const noexcept {
+  struct std__variant_bool__nitro__NullType_ final {
+    std::variant<bool, nitro::NullType> variant;
+    std__variant_bool__nitro__NullType_(std::variant<bool, nitro::NullType> variant): variant(variant) { }
+    operator std::variant<bool, nitro::NullType>() const noexcept {
       return variant;
     }
     inline size_t index() const noexcept {
       return variant.index();
     }
-    inline nitro::NullType get_0() const noexcept {
+    inline bool get_0() const noexcept {
       return std::get<0>(variant);
     }
-    inline bool get_1() const noexcept {
+    inline nitro::NullType get_1() const noexcept {
       return std::get<1>(variant);
     }
   };
-  inline std__variant_nitro__NullType__bool_ create_std__variant_nitro__NullType__bool_(nitro::NullType value) noexcept {
-    return std__variant_nitro__NullType__bool_(value);
+  inline std__variant_bool__nitro__NullType_ create_std__variant_bool__nitro__NullType_(bool value) noexcept {
+    return std__variant_bool__nitro__NullType_(value);
   }
-  inline std__variant_nitro__NullType__bool_ create_std__variant_nitro__NullType__bool_(bool value) noexcept {
-    return std__variant_nitro__NullType__bool_(value);
+  inline std__variant_bool__nitro__NullType_ create_std__variant_bool__nitro__NullType_(nitro::NullType value) noexcept {
+    return std__variant_bool__nitro__NullType_(value);
   }
   
-  // pragma MARK: std::optional<std::variant<nitro::NullType, bool>>
+  // pragma MARK: std::optional<std::variant<bool, nitro::NullType>>
   /**
-   * Specialized version of `std::optional<std::variant<nitro::NullType, bool>>`.
+   * Specialized version of `std::optional<std::variant<bool, nitro::NullType>>`.
    */
-  using std__optional_std__variant_nitro__NullType__bool__ = std::optional<std::variant<nitro::NullType, bool>>;
-  inline std::optional<std::variant<nitro::NullType, bool>> create_std__optional_std__variant_nitro__NullType__bool__(const std::variant<nitro::NullType, bool>& value) noexcept {
-    return std::optional<std::variant<nitro::NullType, bool>>(value);
+  using std__optional_std__variant_bool__nitro__NullType__ = std::optional<std::variant<bool, nitro::NullType>>;
+  inline std::optional<std::variant<bool, nitro::NullType>> create_std__optional_std__variant_bool__nitro__NullType__(const std::variant<bool, nitro::NullType>& value) noexcept {
+    return std::optional<std::variant<bool, nitro::NullType>>(value);
   }
-  inline bool has_value_std__optional_std__variant_nitro__NullType__bool__(const std::optional<std::variant<nitro::NullType, bool>>& optional) noexcept {
+  inline bool has_value_std__optional_std__variant_bool__nitro__NullType__(const std::optional<std::variant<bool, nitro::NullType>>& optional) noexcept {
     return optional.has_value();
   }
-  inline std::variant<nitro::NullType, bool> get_std__optional_std__variant_nitro__NullType__bool__(const std::optional<std::variant<nitro::NullType, bool>>& optional) noexcept {
+  inline std::variant<bool, nitro::NullType> get_std__optional_std__variant_bool__nitro__NullType__(const std::optional<std::variant<bool, nitro::NullType>>& optional) noexcept {
     return optional.value();
   }
   
@@ -364,38 +364,38 @@ namespace margelo::nitro::acousticconnectrn::bridge::swift {
     return Func_void_PushPermissionResult_Wrapper(std::move(value));
   }
   
-  // pragma MARK: std::shared_ptr<Promise<std::variant<nitro::NullType, bool>>>
+  // pragma MARK: std::shared_ptr<Promise<std::variant<bool, nitro::NullType>>>
   /**
-   * Specialized version of `std::shared_ptr<Promise<std::variant<nitro::NullType, bool>>>`.
+   * Specialized version of `std::shared_ptr<Promise<std::variant<bool, nitro::NullType>>>`.
    */
-  using std__shared_ptr_Promise_std__variant_nitro__NullType__bool___ = std::shared_ptr<Promise<std::variant<nitro::NullType, bool>>>;
-  inline std::shared_ptr<Promise<std::variant<nitro::NullType, bool>>> create_std__shared_ptr_Promise_std__variant_nitro__NullType__bool___() noexcept {
-    return Promise<std::variant<nitro::NullType, bool>>::create();
+  using std__shared_ptr_Promise_std__variant_bool__nitro__NullType___ = std::shared_ptr<Promise<std::variant<bool, nitro::NullType>>>;
+  inline std::shared_ptr<Promise<std::variant<bool, nitro::NullType>>> create_std__shared_ptr_Promise_std__variant_bool__nitro__NullType___() noexcept {
+    return Promise<std::variant<bool, nitro::NullType>>::create();
   }
-  inline PromiseHolder<std::variant<nitro::NullType, bool>> wrap_std__shared_ptr_Promise_std__variant_nitro__NullType__bool___(std::shared_ptr<Promise<std::variant<nitro::NullType, bool>>> promise) noexcept {
-    return PromiseHolder<std::variant<nitro::NullType, bool>>(std::move(promise));
+  inline PromiseHolder<std::variant<bool, nitro::NullType>> wrap_std__shared_ptr_Promise_std__variant_bool__nitro__NullType___(std::shared_ptr<Promise<std::variant<bool, nitro::NullType>>> promise) noexcept {
+    return PromiseHolder<std::variant<bool, nitro::NullType>>(std::move(promise));
   }
   
-  // pragma MARK: std::function<void(const std::variant<nitro::NullType, bool>& /* result */)>
+  // pragma MARK: std::function<void(const std::variant<bool, nitro::NullType>& /* result */)>
   /**
-   * Specialized version of `std::function<void(const std::variant<nitro::NullType, bool>&)>`.
+   * Specialized version of `std::function<void(const std::variant<bool, nitro::NullType>&)>`.
    */
-  using Func_void_std__variant_nitro__NullType__bool_ = std::function<void(const std::variant<nitro::NullType, bool>& /* result */)>;
+  using Func_void_std__variant_bool__nitro__NullType_ = std::function<void(const std::variant<bool, nitro::NullType>& /* result */)>;
   /**
-   * Wrapper class for a `std::function<void(const std::variant<nitro::NullType, bool>& / * result * /)>`, this can be used from Swift.
+   * Wrapper class for a `std::function<void(const std::variant<bool, nitro::NullType>& / * result * /)>`, this can be used from Swift.
    */
-  class Func_void_std__variant_nitro__NullType__bool__Wrapper final {
+  class Func_void_std__variant_bool__nitro__NullType__Wrapper final {
   public:
-    explicit Func_void_std__variant_nitro__NullType__bool__Wrapper(std::function<void(const std::variant<nitro::NullType, bool>& /* result */)>&& func): _function(std::make_unique<std::function<void(const std::variant<nitro::NullType, bool>& /* result */)>>(std::move(func))) {}
-    inline void call(std::variant<nitro::NullType, bool> result) const noexcept {
+    explicit Func_void_std__variant_bool__nitro__NullType__Wrapper(std::function<void(const std::variant<bool, nitro::NullType>& /* result */)>&& func): _function(std::make_unique<std::function<void(const std::variant<bool, nitro::NullType>& /* result */)>>(std::move(func))) {}
+    inline void call(std::variant<bool, nitro::NullType> result) const noexcept {
       _function->operator()(result);
     }
   private:
-    std::unique_ptr<std::function<void(const std::variant<nitro::NullType, bool>& /* result */)>> _function;
+    std::unique_ptr<std::function<void(const std::variant<bool, nitro::NullType>& /* result */)>> _function;
   } SWIFT_NONCOPYABLE;
-  Func_void_std__variant_nitro__NullType__bool_ create_Func_void_std__variant_nitro__NullType__bool_(void* NON_NULL swiftClosureWrapper) noexcept;
-  inline Func_void_std__variant_nitro__NullType__bool__Wrapper wrap_Func_void_std__variant_nitro__NullType__bool_(Func_void_std__variant_nitro__NullType__bool_ value) noexcept {
-    return Func_void_std__variant_nitro__NullType__bool__Wrapper(std::move(value));
+  Func_void_std__variant_bool__nitro__NullType_ create_Func_void_std__variant_bool__nitro__NullType_(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_std__variant_bool__nitro__NullType__Wrapper wrap_Func_void_std__variant_bool__nitro__NullType_(Func_void_std__variant_bool__nitro__NullType_ value) noexcept {
+    return Func_void_std__variant_bool__nitro__NullType__Wrapper(std::move(value));
   }
   
   // pragma MARK: std::shared_ptr<HybridAcousticConnectRNSpec>
@@ -455,13 +455,13 @@ namespace margelo::nitro::acousticconnectrn::bridge::swift {
     return Result<std::shared_ptr<Promise<PushPermissionResult>>>::withError(error);
   }
   
-  // pragma MARK: Result<std::shared_ptr<Promise<std::variant<nitro::NullType, bool>>>>
-  using Result_std__shared_ptr_Promise_std__variant_nitro__NullType__bool____ = Result<std::shared_ptr<Promise<std::variant<nitro::NullType, bool>>>>;
-  inline Result_std__shared_ptr_Promise_std__variant_nitro__NullType__bool____ create_Result_std__shared_ptr_Promise_std__variant_nitro__NullType__bool____(const std::shared_ptr<Promise<std::variant<nitro::NullType, bool>>>& value) noexcept {
-    return Result<std::shared_ptr<Promise<std::variant<nitro::NullType, bool>>>>::withValue(value);
+  // pragma MARK: Result<std::shared_ptr<Promise<std::variant<bool, nitro::NullType>>>>
+  using Result_std__shared_ptr_Promise_std__variant_bool__nitro__NullType____ = Result<std::shared_ptr<Promise<std::variant<bool, nitro::NullType>>>>;
+  inline Result_std__shared_ptr_Promise_std__variant_bool__nitro__NullType____ create_Result_std__shared_ptr_Promise_std__variant_bool__nitro__NullType____(const std::shared_ptr<Promise<std::variant<bool, nitro::NullType>>>& value) noexcept {
+    return Result<std::shared_ptr<Promise<std::variant<bool, nitro::NullType>>>>::withValue(value);
   }
-  inline Result_std__shared_ptr_Promise_std__variant_nitro__NullType__bool____ create_Result_std__shared_ptr_Promise_std__variant_nitro__NullType__bool____(const std::exception_ptr& error) noexcept {
-    return Result<std::shared_ptr<Promise<std::variant<nitro::NullType, bool>>>>::withError(error);
+  inline Result_std__shared_ptr_Promise_std__variant_bool__nitro__NullType____ create_Result_std__shared_ptr_Promise_std__variant_bool__nitro__NullType____(const std::exception_ptr& error) noexcept {
+    return Result<std::shared_ptr<Promise<std::variant<bool, nitro::NullType>>>>::withError(error);
   }
 
 } // namespace margelo::nitro::acousticconnectrn::bridge::swift

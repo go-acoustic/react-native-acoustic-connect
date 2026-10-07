@@ -10,6 +10,7 @@ package com.margelo.nitro.acousticconnectrn
 import androidx.annotation.Keep
 import com.facebook.jni.HybridData
 import com.facebook.proguard.annotations.DoNotStrip
+import dalvik.annotation.optimization.FastNative
 import com.margelo.nitro.core.NullType
 import com.margelo.nitro.core.AnyMap
 import com.margelo.nitro.core.Promise
@@ -150,7 +151,7 @@ abstract class HybridAcousticConnectRNSpec: HybridObject() {
   
   @DoNotStrip
   @Keep
-  abstract fun pushDidReceiveAuthorization(granted: Variant_NullType_Boolean?, error: PushErrorInfo?): Promise<Boolean>
+  abstract fun pushDidReceiveAuthorization(granted: Variant_Boolean_NullType?, error: PushErrorInfo?): Promise<Boolean>
   
   @DoNotStrip
   @Keep
@@ -158,7 +159,7 @@ abstract class HybridAcousticConnectRNSpec: HybridObject() {
   
   @DoNotStrip
   @Keep
-  abstract fun pushGetPermissionState(): Promise<Variant_NullType_Boolean>
+  abstract fun pushGetPermissionState(): Promise<Variant_Boolean_NullType>
 
   // Default implementation of `HybridObject.toString()`
   override fun toString(): String {
@@ -170,6 +171,7 @@ abstract class HybridAcousticConnectRNSpec: HybridObject() {
   @Keep
   protected open class CxxPart(javaPart: HybridAcousticConnectRNSpec): HybridObject.CxxPart(javaPart) {
     // C++ JHybridAcousticConnectRNSpec::CxxPart::initHybrid(...)
+    @FastNative
     external override fun initHybrid(): HybridData
   }
   override fun createCxxPart(): CxxPart {

@@ -38,10 +38,10 @@ namespace margelo::nitro::acousticconnectrn::bridge::swift {
     };
   }
   
-  // pragma MARK: std::function<void(const std::variant<nitro::NullType, bool>& /* result */)>
-  Func_void_std__variant_nitro__NullType__bool_ create_Func_void_std__variant_nitro__NullType__bool_(void* NON_NULL swiftClosureWrapper) noexcept {
-    auto swiftClosure = AcousticConnectRN::Func_void_std__variant_nitro__NullType__bool_::fromUnsafe(swiftClosureWrapper);
-    return [swiftClosure = std::move(swiftClosure)](const std::variant<nitro::NullType, bool>& result) mutable -> void {
+  // pragma MARK: std::function<void(const std::variant<bool, nitro::NullType>& /* result */)>
+  Func_void_std__variant_bool__nitro__NullType_ create_Func_void_std__variant_bool__nitro__NullType_(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = AcousticConnectRN::Func_void_std__variant_bool__nitro__NullType_::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const std::variant<bool, nitro::NullType>& result) mutable -> void {
       swiftClosure.call(result);
     };
   }

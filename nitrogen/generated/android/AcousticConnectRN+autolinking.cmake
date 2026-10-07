@@ -37,7 +37,7 @@ target_sources(
   # Android-specific Nitrogen C++ sources
   ../nitrogen/generated/android/c++/JHybridAcousticConnectRNSpec.cpp
   ../nitrogen/generated/android/c++/JVariant_NullType_String.cpp
-  ../nitrogen/generated/android/c++/JVariant_NullType_Boolean.cpp
+  ../nitrogen/generated/android/c++/JVariant_Boolean_NullType.cpp
   ../nitrogen/generated/android/c++/JVariant_Boolean_String_Double.cpp
 )
 

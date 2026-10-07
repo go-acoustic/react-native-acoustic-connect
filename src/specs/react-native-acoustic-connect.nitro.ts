@@ -205,9 +205,9 @@ export interface AcousticConnectRN extends HybridObject<{ ios: 'swift', android:
      * map and dropped a top-level number. Numbers nested *inside* an object
      * or array were never affected, because the bridge builds those
      * `JSONObject`/`JSONArray` values itself, and iOS has always carried
-     * top-level numbers normally. Both versions sit inside the
-     * `[11.0.11, 12.0.0)` range this package accepts, so nest the number if
-     * your integration pins a Connect Android version below 11.0.24-beta.
+     * top-level numbers normally. Both versions sit below the
+     * `[11.1.16-beta, 12.0.0)` range this package accepts, so every supported
+     * version carries a top-level number.
      *
      * @example Nested payload
      * ```ts

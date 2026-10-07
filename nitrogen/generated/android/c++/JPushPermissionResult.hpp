@@ -22,7 +22,7 @@ namespace margelo::nitro::acousticconnectrn {
   using namespace facebook;
 
   /**
-   * The C++ JNI bridge between the C++ struct "PushPermissionResult" and the the Kotlin data class "PushPermissionResult".
+   * The C++ JNI bridge between the C++ struct "PushPermissionResult" and the Kotlin data class "PushPermissionResult".
    */
   struct JPushPermissionResult final: public jni::JavaClass<JPushPermissionResult> {
   public:

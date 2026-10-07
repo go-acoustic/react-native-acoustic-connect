@@ -745,20 +745,20 @@ open class HybridAcousticConnectRNSpec_cxx {
   }
   
   @inline(__always)
-  public final func pushDidReceiveAuthorization(granted: bridge.std__optional_std__variant_nitro__NullType__bool__, error: bridge.std__optional_PushErrorInfo_) -> bridge.Result_std__shared_ptr_Promise_bool___ {
+  public final func pushDidReceiveAuthorization(granted: bridge.std__optional_std__variant_bool__nitro__NullType__, error: bridge.std__optional_PushErrorInfo_) -> bridge.Result_std__shared_ptr_Promise_bool___ {
     do {
-      let __result = try self.__implementation.pushDidReceiveAuthorization(granted: { () -> Variant_NullType_Bool? in
-        if bridge.has_value_std__optional_std__variant_nitro__NullType__bool__(granted) {
-          let __unwrapped = bridge.get_std__optional_std__variant_nitro__NullType__bool__(granted)
-          return { () -> Variant_NullType_Bool in
-            let __variant = bridge.std__variant_nitro__NullType__bool_(__unwrapped)
+      let __result = try self.__implementation.pushDidReceiveAuthorization(granted: { () -> Variant_Bool_NullType? in
+        if bridge.has_value_std__optional_std__variant_bool__nitro__NullType__(granted) {
+          let __unwrapped = bridge.get_std__optional_std__variant_bool__nitro__NullType__(granted)
+          return { () -> Variant_Bool_NullType in
+            let __variant = bridge.std__variant_bool__nitro__NullType_(__unwrapped)
             switch __variant.index() {
               case 0:
                 let __actual = __variant.get_0()
-                return .first(NullType.null)
+                return .first(__actual)
               case 1:
                 let __actual = __variant.get_1()
-                return .second(__actual)
+                return .second(NullType.null)
               default:
                 fatalError("Variant can never have index \(__variant.index())!")
             }
@@ -802,28 +802,28 @@ open class HybridAcousticConnectRNSpec_cxx {
   }
   
   @inline(__always)
-  public final func pushGetPermissionState() -> bridge.Result_std__shared_ptr_Promise_std__variant_nitro__NullType__bool____ {
+  public final func pushGetPermissionState() -> bridge.Result_std__shared_ptr_Promise_std__variant_bool__nitro__NullType____ {
     do {
       let __result = try self.__implementation.pushGetPermissionState()
-      let __resultCpp = { () -> bridge.std__shared_ptr_Promise_std__variant_nitro__NullType__bool___ in
-        let __promise = bridge.create_std__shared_ptr_Promise_std__variant_nitro__NullType__bool___()
-        let __promiseHolder = bridge.wrap_std__shared_ptr_Promise_std__variant_nitro__NullType__bool___(__promise)
+      let __resultCpp = { () -> bridge.std__shared_ptr_Promise_std__variant_bool__nitro__NullType___ in
+        let __promise = bridge.create_std__shared_ptr_Promise_std__variant_bool__nitro__NullType___()
+        let __promiseHolder = bridge.wrap_std__shared_ptr_Promise_std__variant_bool__nitro__NullType___(__promise)
         __result
-          .then({ __result in __promiseHolder.resolve({ () -> bridge.std__variant_nitro__NullType__bool_ in
+          .then({ __result in __promiseHolder.resolve({ () -> bridge.std__variant_bool__nitro__NullType_ in
               switch __result {
                 case .first(let __value):
-                  return bridge.create_std__variant_nitro__NullType__bool_(margelo.nitro.NullType.null)
+                  return bridge.create_std__variant_bool__nitro__NullType_(__value)
                 case .second(let __value):
-                  return bridge.create_std__variant_nitro__NullType__bool_(__value)
+                  return bridge.create_std__variant_bool__nitro__NullType_(margelo.nitro.NullType.null)
               }
             }().variant) })
           .catch({ __error in __promiseHolder.reject(__error.toCpp()) })
         return __promise
       }()
-      return bridge.create_Result_std__shared_ptr_Promise_std__variant_nitro__NullType__bool____(__resultCpp)
+      return bridge.create_Result_std__shared_ptr_Promise_std__variant_bool__nitro__NullType____(__resultCpp)
     } catch (let __error) {
       let __exceptionPtr = __error.toCpp()
-      return bridge.create_Result_std__shared_ptr_Promise_std__variant_nitro__NullType__bool____(__exceptionPtr)
+      return bridge.create_Result_std__shared_ptr_Promise_std__variant_bool__nitro__NullType____(__exceptionPtr)
     }
   }
 }

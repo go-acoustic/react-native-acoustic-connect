@@ -1,11 +1,12 @@
 {
-  "extends": "@react-native/typescript-config/tsconfig.json",
+  "extends": "@react-native/typescript-config",
   "compilerOptions": {
     "strict": true,
     "jsx": "react-jsx",
     "types": [],
     "paths": {
       "@shared/*": ["../shared/*", "./shared/*"],
+      "@sample/navigation": ["./src/navigation/sampleNavigation.ts"],
       // Typecheck against the SDK's TypeScript source, the same copy Metro
       // bundles via the package's "react-native"/"source" fields. Without this
       // TypeScript follows "types" to lib/typescript instead — which in the

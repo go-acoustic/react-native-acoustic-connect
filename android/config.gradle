@@ -425,13 +425,100 @@ def updateEOCoreAdvConfig(mp, json) {
     println("Updating:$eocoreAdvConfigPath")
 }
 
+// With `useRelease: false`, the app has to resolve Connect from the beta tree
+// too. The SDK module's android/build.gradle declares it for the module's own
+// classpath, but the APK packages what *this* project — the app — resolves,
+// and an app that cannot see the tree silently gets Central's newest release
+// instead: a different Connect from the one the bridge was compiled against,
+// which fails at runtime with NoSuchMethodError. This script is applied from
+// the app's build.gradle, so the repository declared here is the app's.
+//
+// Apps that centralise repositories in settings.gradle cannot take a project
+// repository: FAIL_ON_PROJECT_REPOS fails the build on one, PREFER_SETTINGS
+// ignores it — for every project, the SDK module included, so the two still
+// agree (on Central). For those, say what to add rather than fail or stay silent.
+def addBetaRepository(proj) {
+    // The GitHub-hosted Maven tree Connect betas publish to. They do not reach
+    // Maven Central, which carries release versions only. Local to the method:
+    // a script-level `def` is not visible inside script methods.
+    def ACOUSTIC_BETA_REPO_URL = "https://raw.githubusercontent.com/go-acoustic/Android_Maven/master"
+    def mode = null
+    def inSettings = false
+    try {
+        def drm = proj.gradle.settings.dependencyResolutionManagement
+        mode = drm.repositoriesMode.get().toString()
+        inSettings = drm.repositories.any { repo ->
+            repo.hasProperty('url') && repo.url.toString().startsWith(ACOUSTIC_BETA_REPO_URL)
+        }
+    } catch (Throwable ignored) {
+        // Older Gradle, or no settings-level repository management: nothing to respect.
+    }
+    if (inSettings) {
+        println("AcousticConnect: useRelease is false — Connect beta repository already declared in settings.gradle")
+        return
+    }
+    if (mode == "FAIL_ON_PROJECT_REPOS" || mode == "PREFER_SETTINGS") {
+        println("WARNING: AcousticConnect: useRelease is false, but settings.gradle sets repositoriesMode " +
+            "$mode, so the Connect beta repository cannot be added to the app. Add it to " +
+            "dependencyResolutionManagement.repositories in settings.gradle:\n" +
+            "    maven {\n" +
+            "        url = \"$ACOUSTIC_BETA_REPO_URL\"\n" +
+            "        content { includeGroup \"io.github.go-acoustic\" }\n" +
+            "    }\n" +
+            "Without it Connect resolves from Maven Central only — for the app and this SDK alike, since " +
+            "settings repositories replace project ones — so betas are not used. Or set useRelease to " +
+            "true to make that explicit.")
+        return
+    }
+    proj.repositories {
+        maven {
+            url = ACOUSTIC_BETA_REPO_URL
+            content { includeGroup "io.github.go-acoustic" }
+        }
+    }
+    println("AcousticConnect: useRelease is false — resolving Connect from $ACOUSTIC_BETA_REPO_URL")
+}
+
+// With `useRelease: true`, reject every go-acoustic beta in the app's resolution.
+// android/build.gradle applies the same rule to the SDK module.
+def rejectBetaVersions(proj) {
+    proj.configurations.all {
+        resolutionStrategy {
+            componentSelection {
+                all { selection ->
+                    // Exempt the eocore artifact from beta rejection.
+                    // Full Maven coordinate: io.github.go-acoustic:eocore
+                    // (verified on Maven Central — the POM declares
+                    // <groupId>io.github.go-acoustic</groupId> +
+                    // <artifactId>eocore</artifactId>, so candidate.module is
+                    // literally 'eocore').
+                    // Unlike the other go-acoustic artifacts, eocore's RELEASE
+                    // line carries a `-beta` suffix — Maven Central lists
+                    // 2.1.24-beta as <release>/<latest>, and the release
+                    // connect:11.0.13 → tealeaf:10.4.28 chain pins eocore
+                    // transitively to that version. Without this carve-out the
+                    // blanket `-beta` reject would drop a legitimate release
+                    // artifact and break every useRelease=true build.
+                    if (selection.candidate.group == 'io.github.go-acoustic' &&
+                        selection.candidate.module != 'eocore' &&
+                        selection.candidate.version.endsWith('-beta')) {
+                        selection.reject("useRelease is true — rejecting beta version ${selection.candidate.version}")
+                    }
+                }
+            }
+        }
+    }
+}
+
 def updateGradle(mp, json){
     def buildGradlePath = "$mp/build.gradle"
     def buildGradleFile = new File(buildGradlePath)
     def updatedBuildGradle = buildGradleFile.text
 
     if (json != null && json.Connect) {
-        def useRelease = json.Connect.useRelease ?: false
+        // Parsed as android/build.gradle parses it, so the module and the app agree on
+        // the value even when it is written as a string ("false" is truthy in Groovy).
+        def useRelease = (json.Connect.useRelease ?: false).toString().toBoolean()
 
         if(json.Connect.AndroidVersion != null) {
             def connectSDK = "io.github.go-acoustic:connect:"
@@ -443,33 +530,11 @@ def updateGradle(mp, json){
             updatedBuildGradle = updatedBuildGradle.replaceAll(~/io.github.go-acoustic:connect:(\+|\d+\.\d+\.\d+(-beta)?)/, connectSDK)
         }
 
+        // Exactly one of the two per build: release-only resolution, or the beta tree.
         if (useRelease) {
-            project.configurations.all {
-                resolutionStrategy {
-                    componentSelection {
-                        all { selection ->
-                            // Exempt the eocore artifact from beta rejection.
-                            // Full Maven coordinate: io.github.go-acoustic:eocore
-                            // (verified on Maven Central — the POM declares
-                            // <groupId>io.github.go-acoustic</groupId> +
-                            // <artifactId>eocore</artifactId>, so candidate.module is
-                            // literally 'eocore').
-                            // Unlike the other go-acoustic artifacts, eocore's RELEASE
-                            // line carries a `-beta` suffix — Maven Central lists
-                            // 2.1.24-beta as <release>/<latest>, and the release
-                            // connect:11.0.13 → tealeaf:10.4.28 chain pins eocore
-                            // transitively to that version. Without this carve-out the
-                            // blanket `-beta` reject would drop a legitimate release
-                            // artifact and break every useRelease=true build.
-                            if (selection.candidate.group == 'io.github.go-acoustic' &&
-                                selection.candidate.module != 'eocore' &&
-                                selection.candidate.version.endsWith('-beta')) {
-                                selection.reject("useRelease is true — rejecting beta version ${selection.candidate.version}")
-                            }
-                        }
-                    }
-                }
-            }
+            rejectBetaVersions(project)
+        } else {
+            addBetaRepository(project)
         }
     }
 

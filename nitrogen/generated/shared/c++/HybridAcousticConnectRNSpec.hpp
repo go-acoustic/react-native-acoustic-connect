@@ -89,9 +89,9 @@ namespace margelo::nitro::acousticconnectrn {
       virtual std::shared_ptr<Promise<bool>> pushDidFailToRegister(const PushErrorInfo& error) = 0;
       virtual std::shared_ptr<Promise<bool>> pushDidReceiveNotification(const std::unordered_map<std::string, std::variant<bool, std::string, double>>& userInfo) = 0;
       virtual std::shared_ptr<Promise<bool>> pushDidReceiveResponse(const std::string& actionIdentifier, const std::unordered_map<std::string, std::variant<bool, std::string, double>>& userInfo) = 0;
-      virtual std::shared_ptr<Promise<bool>> pushDidReceiveAuthorization(const std::optional<std::variant<nitro::NullType, bool>>& granted, const std::optional<PushErrorInfo>& error) = 0;
+      virtual std::shared_ptr<Promise<bool>> pushDidReceiveAuthorization(const std::optional<std::variant<bool, nitro::NullType>>& granted, const std::optional<PushErrorInfo>& error) = 0;
       virtual std::shared_ptr<Promise<PushPermissionResult>> pushRequestPermission() = 0;
-      virtual std::shared_ptr<Promise<std::variant<nitro::NullType, bool>>> pushGetPermissionState() = 0;
+      virtual std::shared_ptr<Promise<std::variant<bool, nitro::NullType>>> pushGetPermissionState() = 0;
 
     protected:
       // Hybrid Setup

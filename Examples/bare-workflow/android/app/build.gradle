@@ -43,9 +43,9 @@ react {
 
     /* Variants */
     //   The list of variants to that are debuggable. For those we're going to
-    //   skip the bundling of the JS bundle and the assets. By default is just 'debug'.
+    //   skip the bundling of the JS bundle and the assets. Default is "debug", "debugOptimized".
     //   If you add flavors like lite, prod, etc. you'll have to list your debuggableVariants.
-    // debuggableVariants = ["liteDebug", "prodDebug"]
+    // debuggableVariants = ["liteDebug", "liteDebugOptimized", "prodDebug", "prodDebugOptimized"]
 
     /* Bundling */
     //   A list containing the node command and its flags. Default is just 'node'.
@@ -146,11 +146,11 @@ dependencies {
 // the demo's root ConnectConfig.json are written into the SDK's
 // `assets/ConnectBasicConfig.properties` (and friends) at build time.
 //
-// scripts/gradleParser.js appends this `apply from:` line as the SDK's
-// postinstall hook for npm-published installs. The hook does not fire
-// for workspace members (npm doesn't re-run postinstall on workspace
-// symlinks) or for the standalone published sample (already installed),
-// so the line lives committed.
+// Committed rather than left to the SDK's postinstall hook
+// (scripts/gradleParser.js), which does not fire for workspace members
+// (npm doesn't re-run postinstall on workspace symlinks). Where the hook
+// does run — a standalone install of the published sample — it detects
+// this line and does not append its own, so config.gradle is applied once.
 apply from: resolveNodeModule('react-native-acoustic-connect', rootDir).getAbsolutePath() + "/android/config.gradle"
 
 // Resolve a Node package's directory via `node -p require.resolve(...)`.

@@ -210,7 +210,7 @@ const PODFILE_MARKER =
  *
  * Tolerates a missing ConnectConfig.json or a missing `Connect` key: when
  * the file or key is absent the block defaults to AcousticConnectDebug with
- * floor '>= 2.1.12' and no version pin, so prop-only setups (no
+ * floor '>= 2.1.51' and no version pin, so prop-only setups (no
  * ConnectConfig.json) keep working.  If the file exists but contains invalid
  * JSON, `pod install` will print a warning and use the same defaults rather
  * than crashing.
@@ -236,7 +236,7 @@ def ${helperName}
   use_release = connect_config['useRelease'] || false
   ios_version = (connect_config['iOSVersion'] || '').to_s
   name = use_release ? 'AcousticConnect' : 'AcousticConnectDebug'
-  floor = '>= 2.1.12'
+  floor = '>= 2.1.51'
   requirements = ios_version.empty? ? [floor] : [floor, ios_version]
   [name, requirements]
 end
