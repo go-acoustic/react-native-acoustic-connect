@@ -59,6 +59,22 @@ target 'ConnectBareWorkflowDemo' do
       # :ccache_enabled => true
     )
 
+    # Xcode 27 rejects a deployment target below 15.0. react_native_post_install
+    # raises pod targets to min_ios_version_supported but not their resource
+    # bundle targets (RNCAsyncStorage-RNCAsyncStorage_resources stays at 13.4),
+    # so raise any resource bundle below that minimum to it.
+    min_ios = Gem::Version.new(min_ios_version_supported)
+    installer.target_installation_results.pod_target_installation_results.each_value do |result|
+      result.resource_bundle_targets.each do |bundle|
+        bundle.build_configurations.each do |build_config|
+          target = build_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
+          if target && Gem::Version.correct?(target) && Gem::Version.new(target) < min_ios
+            build_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = min_ios.to_s
+          end
+        end
+      end
+    end
+
     # Xcode 26+ fmt patch — relaxes the `__apple_build_version__` guard in
     # `fmt/include/fmt/base.h` so the non-consteval format path is used on
     # newer Apple clang. Without this, `fmt/src/format.cc` fails to compile
