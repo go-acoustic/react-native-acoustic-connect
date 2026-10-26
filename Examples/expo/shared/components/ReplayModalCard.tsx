@@ -31,6 +31,12 @@ type ReplayModalCardProps = {
  * individually inspectable rather than just seeing a correct-looking screenshot.
  * The status line echoes the input and the tap count so an interaction that
  * never registered can be told apart from one the SDK failed to capture.
+ *
+ * The test ids are the ones the iOS and Android samples use, so one e2e test
+ * drives every sample: `btn_open_replay_modal_opaque` /
+ * `btn_open_replay_modal_transparent` open it, and inside it (one modal is open
+ * at a time) `field_replay_modal_note`, `btn_replay_modal_action`,
+ * `btn_close_replay_modal` and `txt_replay_modal_result`.
  */
 export function ReplayModalCard({ transparent = false }: ReplayModalCardProps) {
   const [visible, setVisible] = useState(false)
@@ -44,7 +50,15 @@ export function ReplayModalCard({ transparent = false }: ReplayModalCardProps) {
         element inside it should be selectable in session replay, not just
         visible in the screenshot.
       </Text>
-      <PrimaryButton title="Open modal" onPress={() => setVisible(true)} />
+      <PrimaryButton
+        testID={
+          transparent
+            ? 'btn_open_replay_modal_transparent'
+            : 'btn_open_replay_modal_opaque'
+        }
+        title="Open modal"
+        onPress={() => setVisible(true)}
+      />
 
       <Modal
         visible={visible}
@@ -60,23 +74,29 @@ export function ReplayModalCard({ transparent = false }: ReplayModalCardProps) {
               control in the captured layout.
             </Text>
             <DemoTextField
+              testID="field_replay_modal_note"
               label="Note"
               placeholder="Type to check text capture"
               value={note}
               onChangeText={setNote}
             />
             <PrimaryButton
+              testID="btn_replay_modal_action"
               title="Primary action"
               onPress={() => setActionCount((count) => count + 1)}
             />
-            <SecondaryButton title="Close" onPress={() => setVisible(false)} />
+            <SecondaryButton
+              testID="btn_close_replay_modal"
+              title="Close"
+              onPress={() => setVisible(false)}
+            />
             {/* Echoes both inputs back on screen. Without this the modal gives
                 no in-app signal, so a reviewer cannot tell a missing capture
                 from an interaction that never registered — they'd have to take
                 the replay's word for it. Typing here and tapping above should
                 produce a matching text-change event and click event, and this
                 line is what you compare them against. */}
-            <Text style={styles.status}>
+            <Text testID="txt_replay_modal_result" style={styles.status}>
               Note: {note.length > 0 ? note : '—'} · Primary action taps:{' '}
               {actionCount}
             </Text>

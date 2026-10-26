@@ -111,8 +111,6 @@ export const SCENARIOS: Record<string, Scenario> = {
       "referrer is the screen you came from. The iOS bug set it to the screen's own name on every event, which collapses a whole session into one replay step. Android already chained it correctly.",
     channel: 'ios-native',
     platform: 'ios',
-    blockedBy:
-      'Fixed in iOS source on 2026-08-20, but the newest published pod (AcousticConnectDebug 2.1.18) was tagged 2026-07-29. Running this today records the failing baseline.',
   },
   'webview-post-not-replayed-as-get': {
     key: 'webview-post-not-replayed-as-get',

@@ -6,8 +6,10 @@ import { Colors } from '@shared/theme/colors'
 /**
  * Bottom-tab layout — the expo-router equivalent of the bare-workflow demo's
  * `RootNavigator.tsx`. Same three tabs, same brand colors, same emoji icons, so
- * the two apps are visually identical. The `<Connect>` analytics wrapper lives
- * one level up in `_layout.tsx` (it must sit above the navigation container).
+ * the two apps are visually identical, and the same tab button ids
+ * (`tab_notification`, `tab_identity`, `tab_behaviour`) for the e2e suite. The
+ * `<Connect>` analytics wrapper lives one level up in `_layout.tsx` (it must
+ * sit above the navigation container).
  */
 type TabIconProps = { icon: string; focused: boolean }
 
@@ -40,6 +42,7 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Push',
+          tabBarButtonTestID: 'tab_notification',
           tabBarIcon: ({ focused }) => <TabIcon icon="🔔" focused={focused} />,
         }}
       />
@@ -47,6 +50,7 @@ export default function TabsLayout() {
         name="identity"
         options={{
           title: 'Identity',
+          tabBarButtonTestID: 'tab_identity',
           tabBarIcon: ({ focused }) => <TabIcon icon="👤" focused={focused} />,
         }}
       />
@@ -54,6 +58,7 @@ export default function TabsLayout() {
         name="behaviour"
         options={{
           title: 'Behaviour',
+          tabBarButtonTestID: 'tab_behaviour',
           tabBarIcon: ({ focused }) => <TabIcon icon="📈" focused={focused} />,
           // `behaviour/` is a nested stack that draws its own header; a second
           // one from the tab navigator would stack two title bars.
