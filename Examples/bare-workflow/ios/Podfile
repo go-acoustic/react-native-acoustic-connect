@@ -16,6 +16,15 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
+# go-acoustic/PodSpecs is the Acoustic spec repo. CocoaPods trunk becomes
+# read-only on 2 December 2026 and receives no later Connect SDK versions, so
+# they are published there. CocoaPods merges versions across sources, so a
+# version that exists only on trunk still resolves.
+# Declaring any source disables CocoaPods' implicit CDN default, so the CDN is
+# listed as well.
+source 'https://github.com/go-acoustic/PodSpecs.git'
+source 'https://cdn.cocoapods.org/'
+
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 

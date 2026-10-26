@@ -133,6 +133,16 @@ export const SCENARIOS: Record<string, Scenario> = {
     channel: 'native',
     platform: 'both',
   },
+  'masking-value-id-rules': {
+    key: 'masking-value-id-rules',
+    title: 'Masking applies value, id and password rules',
+    action:
+      'Open this screen, type a value starting with SECRET- into the last field, then tap the send button. Read each row in the posted layout message, and the screenshot that comes with the tap.',
+    expected:
+      "Every row arrives masked per the config's Sensitive rules: the address as xxxxxxxxxx9#xxxx#xxx whether or not it has a label, the card number as 9999 9999 9999 9999, never the typed text. No id or tap target carries the address, and the tap's screenshot obscures every masked row, the typed one included. The password field arrives as dots on Android and masked per the Sensitive rules on iOS. The fix is in the Connect Android SDK: its Compose capture applied only MaskAccessibilityLabelList, and its Views capture — the one React Native goes through — sent a password field as typed. On Android the password row needs a Connect Android build newer than 11.1.14-beta; AndroidVersion is empty in ConnectConfig.example.json, so an unpinned sample resolves the newest one. The address and the SECRET- prefix match MaskValueList; row 3 matches MaskIdList on Android and MaskAccessibilityIdList on iOS, both by its testID.",
+    channel: 'android-native',
+    platform: 'android',
+  },
 }
 
 export const CHANNEL_LABEL: Record<Channel, string> = {

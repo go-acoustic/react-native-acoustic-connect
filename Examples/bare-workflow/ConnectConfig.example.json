@@ -71,13 +71,13 @@
                         "HasCustomMask": true,
                         "HasMasking": true,
                         "MaskAccessibilityIdList": [
-                            
+                            "^mask_rules_card$"
                         ],
                         "MaskAccessibilityLabelList": [
                             
                         ],
                         "MaskIdList": [
-                            
+                            "^mask_rules_card$"
                         ],
                         "MaskValueList": [
                             "^SECRET-.*$",
@@ -157,13 +157,13 @@
                         "HasCustomMask": true,
                         "HasMasking": true,
                         "MaskAccessibilityIdList": [
-                            
+                            "^mask_rules_card$"
                         ],
                         "MaskAccessibilityLabelList": [
                             
                         ],
                         "MaskIdList": [
-                            
+                            "^mask_rules_card$"
                         ],
                         "MaskValueList": [
                             "^SECRET-.*$",

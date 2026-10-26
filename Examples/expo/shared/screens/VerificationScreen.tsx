@@ -4,6 +4,7 @@ import { useNavigation } from '@sample/navigation'
 import { DemoCard } from '../components/DemoCard'
 import { AccessibilityMaskCard } from '../components/AccessibilityMaskCard'
 import { CaptureControlCard } from '../components/CaptureControlCard'
+import { MaskingRulesCard } from '../components/MaskingRulesCard'
 import { CustomEventCard } from '../components/CustomEventCard'
 import { IdentityDefaultsCard } from '../components/IdentityDefaultsCard'
 import { LogoHeader } from '../components/LogoHeader'
@@ -73,6 +74,8 @@ export function VerificationScreen() {
       <MaskedFieldCard />
 
       <AccessibilityMaskCard />
+
+      <MaskingRulesCard />
 
       <CaptureControlCard />
 

@@ -9,6 +9,8 @@ type DemoTextFieldProps = {
   onChangeText: (text: string) => void
   disabled?: boolean
   testID?: string
+  /** A password field: the platform shows dots in place of the text. */
+  secureTextEntry?: boolean
 }
 
 /**
@@ -23,6 +25,7 @@ export function DemoTextField({
   onChangeText,
   disabled = false,
   testID,
+  secureTextEntry = false,
 }: DemoTextFieldProps) {
   return (
     <View
@@ -46,6 +49,7 @@ export function DemoTextField({
         autoCapitalize="none"
         autoCorrect={false}
         spellCheck={false}
+        secureTextEntry={secureTextEntry}
       />
     </View>
   )
