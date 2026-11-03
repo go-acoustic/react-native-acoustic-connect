@@ -8,6 +8,7 @@ import React from 'react'
 import { StyleSheet, Text } from 'react-native'
 import { Connect } from 'react-native-acoustic-connect-beta'
 import { BehaviourScreen } from '@shared/screens/BehaviourScreen'
+import { GesturesScreen } from '@shared/screens/GesturesScreen'
 import { IdentityScreen } from '@shared/screens/IdentityScreen'
 import { PushScreen } from '@shared/screens/PushScreen'
 import { ScreenViewsScreen } from '@shared/screens/ScreenViewsScreen'
@@ -70,6 +71,12 @@ function BehaviourNavigator() {
         name="ShowcaseDetail"
         component={ShowcaseDetailScreen}
         options={({ route }) => ({ title: route.params?.name ?? 'Detail' })}
+      />
+      <BehaviourStack.Screen
+        name="Gestures"
+        component={GesturesScreen}
+        initialParams={{ name: 'Gestures' }}
+        options={{ title: 'Gestures', gestureEnabled: false }}
       />
       <BehaviourStack.Screen
         name="ScreenViews"

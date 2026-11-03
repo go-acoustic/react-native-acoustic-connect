@@ -15,6 +15,7 @@ export type BehaviourStackParamList = {
   Showcase: { name: string } | undefined
   Verification: { name: string } | undefined
   ShowcaseDetail: { name: string; depth: number }
+  Gestures: { name: string } | undefined
   ScreenViews: { name: string } | undefined
   Case: { name: string; caseId: string }
   WebViewPost: undefined

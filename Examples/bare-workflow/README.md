@@ -19,7 +19,7 @@ so the two demos look the same side-by-side.
 | ------------------ | ----------------- | ----------------------------------------------------------------------------------------- |
 | **Push**           | Implemented       | Notification authorization status + Request Authorization button (via `pushGetPermissionState` / `pushRequestPermission`). |
 | **Identity**       | Implemented       | Logs `loggedIn` / `accountRegistered` signals with identifier name + value. Recents list. |
-| **Behaviour**      | Implemented       | Hub with two entry points: **Showcase** (screen views, taps, text + masking, custom events, signals, exceptions, dialogs, modal replay, capture control) and **Verification** (one card per shipped fix, for regression runs). |
+| **Behaviour**      | Implemented       | Hub with two entry points: **Showcase** (screen views, taps, gestures, text + masking, custom events, signals, exceptions, dialogs, modal replay, capture control) and **Verification** (one card per shipped fix, for regression runs). |
 
 This sample exercises the full v19.x push surface on iOS (APNs) and Android
 (FCM) — manual-mode lifecycle forwarding, NSE + NCE rich-media targets,
@@ -566,7 +566,8 @@ App.tsx
                  └─ Behaviour → BehaviourNavigator (stack)
                       ├─ Behaviour     → shared/screens/BehaviourScreen.tsx (hub)
                       ├─ Showcase      → shared/screens/ShowcaseScreen.tsx
-                      │    └─ ShowcaseDetail
+                      │    ├─ ShowcaseDetail
+                      │    └─ Gestures      → shared/screens/GesturesScreen.tsx
                       └─ Verification  → shared/screens/VerificationScreen.tsx
                            ├─ ScreenViews → Case
                            └─ WebViewPost

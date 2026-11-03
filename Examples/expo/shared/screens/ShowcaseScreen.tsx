@@ -11,7 +11,7 @@ import { LogoHeader } from '../components/LogoHeader'
 import { NestedSignalCard } from '../components/NestedSignalCard'
 import { ReplayModalCard } from '../components/ReplayModalCard'
 import { TextCaptureCard } from '../components/TextCaptureCard'
-import { PrimaryButton } from '../components/buttons'
+import { PrimaryButton, SecondaryButton } from '../components/buttons'
 import { Colors } from '../theme/colors'
 
 /**
@@ -20,7 +20,7 @@ import { Colors } from '../theme/colors'
  * Behaviour hub.
  *
  * Ordering follows what an integrator meets first: the things `<Connect>`
- * captures with no code (screen views, taps, text), then the explicit logging
+ * captures with no code (screen views, taps, gestures, text), then the explicit logging
  * calls (custom events, signals, exceptions), then dialogs and modals, and
  * finally runtime control.
  *
@@ -46,8 +46,8 @@ export function ShowcaseScreen() {
           when the app is backgrounded.
         </Text>
         <Text style={styles.body}>
-          The first three cards need no SDK call at all — wrapping the
-          navigation tree in {'`<Connect>`'} is what captures them.
+          The first four cards need no SDK call at all — wrapping the navigation
+          tree in {'`<Connect>`'} is what captures them.
         </Text>
       </DemoCard>
 
@@ -70,6 +70,19 @@ export function ShowcaseScreen() {
       </DemoCard>
 
       <ClickCaptureCard />
+
+      <DemoCard title="Gestures">
+        <Text style={styles.body}>
+          Long press, double tap, swipe in any direction, pinch and scroll
+          targets on a screen of their own. Compare what the collector receives
+          for each gesture with the one the screen reports.
+        </Text>
+        <SecondaryButton
+          testID="btn_open_gestures"
+          title="Open gestures"
+          onPress={() => navigation.navigate('Gestures')}
+        />
+      </DemoCard>
 
       <TextCaptureCard />
 

@@ -49,6 +49,11 @@ export default function BehaviourLayout() {
         })}
       />
       <Stack.Screen
+        name="Gestures"
+        initialParams={{ name: 'Gestures' }}
+        options={{ title: 'Gestures', gestureEnabled: false }}
+      />
+      <Stack.Screen
         name="ScreenViews"
         initialParams={{ name: 'Screen Views' }}
         options={{ title: 'Screen Views' }}

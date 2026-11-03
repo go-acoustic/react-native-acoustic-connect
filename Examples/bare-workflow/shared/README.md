@@ -14,8 +14,9 @@ is consumed verbatim by both — there is no forked copy to keep in sync.
 theme/       brand colors (mirror the iOS sample asset catalog)
 components/  LogoHeader, buttons, DemoCard, StatusRow, DemoTextField
 services/    ConnectSDKManager (SDK wrapper), pushPermission, useManagerState
-screens/     PushScreen, IdentityScreen, BehaviourScreen (hub) → ShowcaseScreen,
-             VerificationScreen and their pushed screens
+screens/     PushScreen, IdentityScreen, BehaviourScreen (hub) → ShowcaseScreen
+             (→ ShowcaseDetailScreen, GesturesScreen), VerificationScreen
+             (→ ScreenViewsScreen, WebViewPostScreen)
 verification/ scenarios.ts — registry of shipped fixes the Verification screen checks
 ```
 
