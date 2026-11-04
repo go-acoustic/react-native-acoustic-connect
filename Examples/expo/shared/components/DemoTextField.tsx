@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { type Ref } from 'react'
 import { StyleSheet, Text, TextInput, View, Platform } from 'react-native'
 import { Colors } from '../theme/colors'
 
@@ -11,6 +11,10 @@ type DemoTextFieldProps = {
   testID?: string
   /** A password field: the platform shows dots in place of the text. */
   secureTextEntry?: boolean
+  onFocus?: () => void
+  onBlur?: () => void
+  onEndEditing?: () => void
+  ref?: Ref<TextInput>
 }
 
 /**
@@ -26,6 +30,10 @@ export function DemoTextField({
   disabled = false,
   testID,
   secureTextEntry = false,
+  onFocus,
+  onBlur,
+  onEndEditing,
+  ref,
 }: DemoTextFieldProps) {
   return (
     <View
@@ -39,6 +47,7 @@ export function DemoTextField({
         {label}
       </Text>
       <TextInput
+        ref={ref}
         testID={testID}
         style={[styles.input, disabled && styles.inputDisabled]}
         placeholder={placeholder}
@@ -50,6 +59,9 @@ export function DemoTextField({
         autoCorrect={false}
         spellCheck={false}
         secureTextEntry={secureTextEntry}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        onEndEditing={onEndEditing}
       />
     </View>
   )

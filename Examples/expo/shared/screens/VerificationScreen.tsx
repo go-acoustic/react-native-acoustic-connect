@@ -2,6 +2,7 @@ import React from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useNavigation } from '@sample/navigation'
 import { DemoCard } from '../components/DemoCard'
+import { FocusEventsCard } from '../components/FocusEventsCard'
 import { AccessibilityMaskCard } from '../components/AccessibilityMaskCard'
 import { CaptureControlCard } from '../components/CaptureControlCard'
 import { MaskingRulesCard } from '../components/MaskingRulesCard'
@@ -44,11 +45,13 @@ export function VerificationScreen() {
     >
       <LogoHeader title="Verification" />
 
+      <FocusEventsCard />
+
       <DemoCard title="What this screen is">
         <Text style={styles.body}>
-          Each card below verifies one shipped fix. Drive it on a device, then
-          read the posted message — on Android the SDK posts on a ~30s
-          foreground timer, on iOS only when the app is backgrounded.
+          Each card on this screen verifies one shipped fix. Drive it on a
+          device, then read the posted message — on Android the SDK posts on a
+          ~30s foreground timer, on iOS only when the app is backgrounded.
         </Text>
         <Text style={styles.body}>
           A card marked "baseline only" cannot pass yet: the fix exists in

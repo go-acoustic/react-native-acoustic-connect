@@ -143,6 +143,16 @@ export const SCENARIOS: Record<string, Scenario> = {
     channel: 'android-native',
     platform: 'android',
   },
+  'textinput-focus-events': {
+    key: 'textinput-focus-events',
+    title: 'A tapped text field keeps its focus events',
+    action:
+      'Tap the field under test, then the button, then both again. Hide the keyboard first if it covers them.',
+    expected:
+      "The counter reads focus 2, blur 2, end editing 2. On Android a tap on a field used to replace React Native's focus listener, so the counter stopped at focus 1 or 0, blur 0, end editing 0.",
+    channel: 'rn',
+    platform: 'android',
+  },
 }
 
 export const CHANNEL_LABEL: Record<Channel, string> = {
