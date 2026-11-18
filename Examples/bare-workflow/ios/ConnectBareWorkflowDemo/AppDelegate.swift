@@ -23,13 +23,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     reactNativeDelegate = delegate
     reactNativeFactory = factory
 
-    window = UIWindow(frame: UIScreen.main.bounds)
-
-    factory.startReactNative(
-      withModuleName: "ConnectBareWorkflowDemo",
-      in: window,
-      launchOptions: launchOptions
-    )
+    // The window and the React Native root view are created in SceneDelegate:
+    // apps built with the iOS 27 SDK must use the scene life cycle.
 
     // ── Acoustic Connect push wiring ───────────────────────────────────────
     //

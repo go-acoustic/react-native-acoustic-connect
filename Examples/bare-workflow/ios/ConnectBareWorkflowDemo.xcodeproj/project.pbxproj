@@ -14,6 +14,7 @@
 		24AEE3BC357955045EE2158B /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC862F4C75D943F331DEDA9E /* NotificationService.swift */; };
 		49B974E5E035F30FE694AF31 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 13FFD33F815D98A8240CC708 /* Foundation.framework */; };
 		4A0C0EB8EF245C6ADD1D61E5 /* libPods-ConnectNCE.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 72AFC67C9123FDEE26C05B09 /* libPods-ConnectNCE.a */; };
+		5CE1A0010000000000000002 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CE1A0010000000000000001 /* SceneDelegate.swift */; };
 		5FF28C67E019F4C58DD1B8CB /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 13FFD33F815D98A8240CC708 /* Foundation.framework */; };
 		713E00E490A929202C196F73 /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DA8438A8116145083FF4B1AC /* UserNotifications.framework */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
@@ -69,6 +70,7 @@
 		3B4392A12AC88292D35C810B /* Pods-ConnectBareWorkflowDemo.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ConnectBareWorkflowDemo.debug.xcconfig"; path = "Target Support Files/Pods-ConnectBareWorkflowDemo/Pods-ConnectBareWorkflowDemo.debug.xcconfig"; sourceTree = "<group>"; };
 		5709B34CF0A7D63546082F79 /* Pods-ConnectBareWorkflowDemo.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ConnectBareWorkflowDemo.release.xcconfig"; path = "Target Support Files/Pods-ConnectBareWorkflowDemo/Pods-ConnectBareWorkflowDemo.release.xcconfig"; sourceTree = "<group>"; };
 		575F83034484C4CC13AA99AA /* Pods-ConnectNCE.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ConnectNCE.debug.xcconfig"; path = "Target Support Files/Pods-ConnectNCE/Pods-ConnectNCE.debug.xcconfig"; sourceTree = "<group>"; };
+		5CE1A0010000000000000001 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SceneDelegate.swift; path = ConnectBareWorkflowDemo/SceneDelegate.swift; sourceTree = "<group>"; };
 		5DCACB8F33CDC322A6C60F78 /* libPods-ConnectBareWorkflowDemo.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-ConnectBareWorkflowDemo.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		6932F9046D5A60E63D0F13F7 /* ConnectNCE.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ConnectNCE.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		72AFC67C9123FDEE26C05B09 /* libPods-ConnectNCE.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-ConnectNCE.a"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -149,6 +151,7 @@
 			children = (
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
+				5CE1A0010000000000000001 /* SceneDelegate.swift */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
@@ -510,6 +513,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
+				5CE1A0010000000000000002 /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
