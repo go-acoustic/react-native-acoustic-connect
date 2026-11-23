@@ -180,6 +180,8 @@ the native projects:
 `App.tsx` then calls `AcousticConnectRN.enable()` — a zero-arg
 idempotent kick. The native bridge auto-initialises the SDK on cold
 start from the bundled config; the JS call is just confirmation.
+With `"AutoStart": false` in `ConnectConfig.json`, neither starts the
+SDK: capture waits until Enable SDK on the Verification screen.
 
 To change credentials: edit `ConnectConfig.json`, re-run
 `bundle exec pod install --project-directory=ios` for iOS, then
@@ -557,7 +559,7 @@ from `ConnectConfig.json` at build time. **Don't commit them**
 
 ```
 App.tsx
-  └─ ConnectSDKManager.start()           (zero-arg enable, hydrates state)
+  └─ ConnectSDKManager.start(autoStart)  (enable unless AutoStart is false, hydrates state)
   └─ Connect (SDK wrapper)               (screen + click capture)
        └─ NavigationContainer
             └─ BottomTabs:

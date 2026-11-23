@@ -4,6 +4,7 @@
         "AppKey": "YOUR_CONNECT_APP_KEY_HERE",
         "KillSwitchUrl": "https://collector.example.com/collector/switch/YOUR_CONNECT_APP_KEY_HERE",
         "PostMessageUrl": "https://collector.example.com/collector/collectorPost",
+        "AutoStart": true,
         "PushEnabled": true,
         "iOSPushMode": "automatic",
         "iOSAppGroupIdentifier": "YOUR_APP_GROUP_ID_HERE",

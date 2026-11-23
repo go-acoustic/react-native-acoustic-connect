@@ -41,6 +41,7 @@ export type ManagerState = {
   identityHistory: IdentityPair[]
   identityLogResult: string | null
   sdkEnabled: boolean
+  consentPending: boolean
 }
 
 type Listener = (state: ManagerState) => void
@@ -51,6 +52,7 @@ class ConnectSDKManagerImpl {
     identityHistory: [],
     identityLogResult: null,
     sdkEnabled: false,
+    consentPending: false,
   }
 
   private listeners = new Set<Listener>()
@@ -83,16 +85,27 @@ class ConnectSDKManagerImpl {
    * calls short-circuit once the SDK is running. Pushing this from JS at
    * mount time is still useful as a "kick" for the case where the native
    * cold-start path hasn't fired yet (e.g. dev hot reload).
+   *
+   * With `AutoStart: false` none of this applies: the SDK waits for consent,
+   * and an `enable()` here would start capture before the user agreed.
    */
-  async start(): Promise<void> {
+  async start(autoStart: boolean): Promise<void> {
     const history = await this.loadIdentityHistory()
-    const enabled = AcousticConnectRN.enable()
+    const enabled = autoStart ? AcousticConnectRN.enable() : false
     const state = await getPermissionState()
     this.setState({
       sdkEnabled: enabled,
+      consentPending: !autoStart,
       identityHistory: history,
       permissionState: state,
     })
+  }
+
+  enable(): boolean {
+    const enabled = AcousticConnectRN.enable()
+    this.setState({ sdkEnabled: enabled, consentPending: false })
+    void this.refreshPermissionState()
+    return enabled
   }
 
   /** Re-reads the permission tri-state without prompting (e.g. on foreground). */
@@ -185,6 +198,22 @@ class ConnectSDKManagerImpl {
       return []
     }
   }
+}
+
+/**
+ * `Connect.AutoStart` from the app's `ConnectConfig.json`, read the way the SDK
+ * reads it: absent or `null` is `true`; any value not read as true is `false`.
+ */
+export function autoStartFrom(config: unknown): boolean {
+  const raw = (config as { Connect?: { AutoStart?: unknown } } | null)?.Connect
+    ?.AutoStart
+  if (raw === undefined || raw === null) return true
+  if (typeof raw === 'boolean') return raw
+  if (typeof raw === 'number') return raw === 1
+  if (typeof raw !== 'string') return false
+  return ['true', 'yes', '1'].includes(
+    raw.replace(/^[ \t\r\n]+|[ \t\r\n]+$/g, '').toLowerCase()
+  )
 }
 
 export const ConnectSDKManager = new ConnectSDKManagerImpl()

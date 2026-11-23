@@ -31,7 +31,9 @@ what bare-workflow wires by hand.
 
 The SDK **auto-initialises** at module load from `ConnectConfig.json`; there is
 no JS-side `enable(appKey, postURL, …)` — `enable()` is parameterless and only
-needed to re-enable after a `disable()`. The `<Connect>` analytics wrapper in
+needed to re-enable after a `disable()`, or to start capture when
+`ConnectConfig.json` sets `"AutoStart": false` (the Verification screen's
+Enable SDK button does it). The `<Connect>` analytics wrapper in
 [`src/app/_layout.tsx`](src/app/_layout.tsx) captures screen views and taps.
 
 ## Prerequisites
@@ -94,7 +96,7 @@ npx expo run:ios --device      # or: npx expo run:android
 
 `expo run:*` builds the native project (running the Config Plugin during
 prebuild), installs, starts Metro, and launches the app. The SDK initialises on
-load; no JS-side `enable()` call is needed.
+load; no JS-side `enable()` call is needed unless `AutoStart` is false.
 
 ### Verifying the Config Plugin output
 

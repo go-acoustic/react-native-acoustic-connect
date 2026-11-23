@@ -8,8 +8,13 @@ import {
 } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { RootNavigator } from './src/navigation/RootNavigator'
-import { ConnectSDKManager } from '@shared/services/ConnectSDKManager'
+import {
+  autoStartFrom,
+  ConnectSDKManager,
+} from '@shared/services/ConnectSDKManager'
 import { Colors } from '@shared/theme/colors'
+// The config the SDK itself is built with, so one `AutoStart` drives both.
+import connectConfig from './ConnectConfig.json'
 
 /**
  * Root of the bare-workflow demo. Boots the SDK once on mount — reading
@@ -28,7 +33,7 @@ export default function App() {
   >({ status: 'booting' })
 
   useEffect(() => {
-    ConnectSDKManager.start()
+    ConnectSDKManager.start(autoStartFrom(connectConfig))
       .then(() => setBootState({ status: 'ready' }))
       .catch((error) => {
         console.error('[ConnectDemo] SDK startup failed', error)

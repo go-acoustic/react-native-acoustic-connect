@@ -26,8 +26,9 @@ import { Colors } from '../theme/colors'
  *
  * Push mode, app-group, and rich-media targets are configured in
  * `ConnectConfig.json` / the native projects — see the README's
- * "Mobile Push Setup". The SDK auto-enables at boot from the bundled config,
- * so the tab stays focused on the one runtime interaction: permission.
+ * "Mobile Push Setup". The SDK auto-enables at boot from the bundled config
+ * (unless `AutoStart` is false), so the tab stays focused on the one runtime
+ * interaction: permission.
  */
 export function PushScreen() {
   const state = useManagerState()

@@ -4,6 +4,8 @@ import AcousticConnectRN from 'react-native-acoustic-connect-beta'
 import { DemoCard } from './DemoCard'
 import { PrimaryButton } from './buttons'
 import { Colors } from '../theme/colors'
+import { ConnectSDKManager } from '../services/ConnectSDKManager'
+import { useManagerState } from '../services/useManagerState'
 
 /**
  * Runtime capture control, and what it does and does not stop.
@@ -18,9 +20,13 @@ import { Colors } from '../theme/colors'
  *
  * Tap Disable, then move between screens and watch for further layout messages:
  * there should be none until Re-enable.
+ *
+ * Built with `AutoStart: false`, the card shows `txt_capture_consent_pending`
+ * until Enable stands in for the user's consent.
  */
 export function CaptureControlCard() {
   const [state, setState] = useState<string | null>(null)
+  const { consentPending } = useManagerState()
 
   const disable = useCallback(() => {
     const ok = AcousticConnectRN.disable()
@@ -30,7 +36,7 @@ export function CaptureControlCard() {
   }, [])
 
   const enable = useCallback(() => {
-    const ok = AcousticConnectRN.enable()
+    const ok = ConnectSDKManager.enable()
     setState(`enable() returned ${ok}`)
   }, [])
 
@@ -41,6 +47,12 @@ export function CaptureControlCard() {
         front of you rather than assuming: tap Disable, navigate a few screens,
         and check that no further layout messages arrive.
       </Text>
+      {consentPending ? (
+        <Text testID="txt_capture_consent_pending" style={styles.mono}>
+          Consent pending: AutoStart is false and the app has not called
+          enable() yet. Tap Enable SDK to start capture.
+        </Text>
+      ) : null}
       <PrimaryButton
         testID="btn_capture_disable"
         title="Disable SDK"
@@ -48,7 +60,7 @@ export function CaptureControlCard() {
       />
       <PrimaryButton
         testID="btn_capture_enable"
-        title="Re-enable SDK"
+        title={consentPending ? 'Enable SDK' : 'Re-enable SDK'}
         onPress={enable}
       />
       {state ? (

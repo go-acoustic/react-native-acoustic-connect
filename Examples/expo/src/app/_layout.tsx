@@ -6,8 +6,13 @@ import { StatusBar } from 'expo-status-bar'
 // importing the SDK here is the entire JS-side native setup. `<Connect>` is the
 // analytics wrapper — see RootNavigator.tsx in the bare-workflow sample.
 import { Connect } from 'react-native-acoustic-connect-beta'
-import { ConnectSDKManager } from '@shared/services/ConnectSDKManager'
+import {
+  autoStartFrom,
+  ConnectSDKManager,
+} from '@shared/services/ConnectSDKManager'
 import { Colors } from '@shared/theme/colors'
+// The config the SDK itself is built with, so one `AutoStart` drives both.
+import connectConfig from '../../ConnectConfig.json'
 
 /**
  * Expo-router root layout — the Expo sibling of the bare-workflow demo's
@@ -35,7 +40,7 @@ export default function RootLayout() {
   >({ status: 'booting' })
 
   useEffect(() => {
-    ConnectSDKManager.start()
+    ConnectSDKManager.start(autoStartFrom(connectConfig))
       .then(() => setBootState({ status: 'ready' }))
       .catch((error) => {
         console.error('[ConnectDemo] SDK startup failed', error)
